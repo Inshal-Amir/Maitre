@@ -241,7 +241,7 @@ code, pre { font-family: var(--mono); }
 .dialog-body section:last-of-type { border-bottom: 0; }
 .dialog-body h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); }
 .dialog-body label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 550; color: var(--text-2); margin-bottom: 10px; }
-.dialog-body input:not([type='radio']) { height: 36px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line-strong); background: var(--bg); outline: none; font-weight: 400; color: var(--text); font-size: 14px; width: 100%; }
+.dialog-body input:not([type='radio']):not([type='checkbox']) { height: 36px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line-strong); background: var(--bg); outline: none; font-weight: 400; color: var(--text); font-size: 14px; width: 100%; }
 .dialog-body input:focus { border-color: var(--brand); }
 .field-note { font-size: 12.5px; color: var(--text-3); margin: -4px 0 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .field-note a { color: var(--brand); }
@@ -288,3 +288,23 @@ code, pre { font-family: var(--mono); }
 .account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .account-email { font-weight: 600; }
 .account-row .field-note { margin: 2px 0 0; }
+
+/* Connectors */
+.connector { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+.connector-head, .connector-row { display: flex; align-items: center; gap: 10px; }
+.connector-row { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.connector-title { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; }
+.connector-title .field-note { margin: 2px 0 0; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.connector-logo { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; color: #fff; flex: none; }
+.connector-logo.google { background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0); }
+.service-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.dialog-body label.service { flex-direction: row; align-items: center; gap: 6px; margin: 0; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; font-weight: 500; cursor: pointer; }
+.dialog-body label.service.on { border-color: var(--brand); color: var(--text); background: color-mix(in srgb, var(--brand) 7%, var(--bg)); }
+.dialog-body label.check { flex-direction: row; align-items: flex-start; gap: 8px; font-weight: 400; }
+.connector-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.connector-advanced { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.custom-servers { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.custom-servers .connector-row, .custom-servers .connector-advanced { width: 100%; }
+.dialog-body select { height: 36px; padding: 0 8px; border-radius: 9px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); font: inherit; font-weight: 400; }
+.dialog-body input[type='checkbox'] { width: 15px; height: 15px; margin: 0; accent-color: var(--brand); flex: none; }
+.dialog-body label.check input { margin-top: 3px; }

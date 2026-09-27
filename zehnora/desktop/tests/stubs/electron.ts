@@ -5,7 +5,11 @@ import path from 'node:path';
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'zehnora-test-'));
 
 export const app = { getPath: (): string => userData };
-export const safeStorage = { isEncryptionAvailable: (): boolean => false, encryptString: (): Buffer => Buffer.alloc(0), decryptString: (): string => '' };
+export const safeStorage = {
+  isEncryptionAvailable: (): boolean => true,
+  encryptString: (text: string): Buffer => Buffer.from(text, 'utf8').reverse(),
+  decryptString: (buffer: Buffer): string => Buffer.from(buffer).reverse().toString('utf8'),
+};
 export const shell = {
   trashItem: async (target: string): Promise<void> => fs.rmSync(target, { recursive: true, force: true }),
   openExternal: async (): Promise<void> => undefined,

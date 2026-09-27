@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AccountStatus, ApprovalRequest, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, ZehnoraApi } from '../shared/types';
+import type { AccountStatus, ApprovalRequest, ConnectorStatus, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, ZehnoraApi } from '../shared/types';
 
 declare global {
   interface Window {
@@ -42,6 +42,7 @@ export interface AppState {
   settings: Settings | null;
   status: ModelStatus | null;
   account: AccountStatus | null;
+  connectors: ConnectorStatus[];
   signOut(): Promise<void>;
   setMode(mode: Mode): void;
   open(id: string): Promise<void>;
@@ -65,6 +66,7 @@ export function useAppState(): AppState {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<ModelStatus | null>(null);
   const [account, setAccount] = useState<AccountStatus | null>(null);
+  const [connectors, setConnectors] = useState<ConnectorStatus[]>([]);
 
   const refreshStatus = useCallback(async () => {
     const [model, who, current] = await Promise.all([api().modelStatus(), api().accountStatus(), api().getSettings()]);
@@ -77,6 +79,7 @@ export function useAppState(): AppState {
     api().listConversations().then(setConversations);
     api().getSettings().then(setSettings);
     api().listProcesses().then(setProcesses);
+    api().listConnectors().then(setConnectors);
     refreshStatus();
     const timer = setInterval(refreshStatus, 60_000);
     const off = api().onEvent((event) => {
@@ -98,6 +101,9 @@ export function useAppState(): AppState {
         setApprovals((list) => list.filter((request) => request.id !== event.id));
       } else if (event.type === 'processes') {
         setProcesses(event.processes);
+      } else if (event.type === 'connectors') {
+        api().listConnectors().then(setConnectors);
+        api().getSettings().then(setSettings);
       }
     });
     return () => {
@@ -169,5 +175,5 @@ export function useAppState(): AppState {
 
   const visible = useMemo(() => conversations.filter((entry) => entry.mode === mode && entry.title !== 'New chat'), [conversations, mode]);
 
-  return { mode, conversations: visible, active, running, approvals, processes, settings, status, account, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, saveSettings, refreshStatus };
+  return { mode, conversations: visible, active, running, approvals, processes, settings, status, account, connectors, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, saveSettings, refreshStatus };
 }

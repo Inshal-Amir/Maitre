@@ -57,6 +57,40 @@ export interface Conversation extends ConversationSummary {
   messages: Message[];
 }
 
+export type GoogleService = 'gmail' | 'calendar' | 'drive' | 'docs' | 'sheets';
+
+export const GOOGLE_SERVICES: readonly GoogleService[] = ['gmail', 'calendar', 'drive', 'docs', 'sheets'];
+
+export interface McpServerConfig {
+  id: string;
+  name: string;
+  type: 'http' | 'stdio';
+  url?: string;
+  command?: string;
+  args?: string[];
+  enabled: boolean;
+}
+
+export interface GoogleSettings {
+  clientId: string;
+  clientSecret: string;
+  services: GoogleService[];
+  /** Use Google's hosted MCP servers (Workspace Developer Preview) instead of the built-in connector. */
+  official: boolean;
+}
+
+export type ConnectorState = 'connected' | 'connecting' | 'disconnected' | 'needs-auth' | 'error';
+
+export interface ConnectorStatus {
+  id: string;
+  name: string;
+  kind: 'google' | 'custom';
+  state: ConnectorState;
+  detail: string;
+  tools: string[];
+  account?: string;
+}
+
 export interface Settings {
   apiBase: string;
   consoleBase: string;
@@ -70,6 +104,8 @@ export interface Settings {
   contextTokens: number;
   maxOutputTokens: number;
   theme: 'system' | 'light' | 'dark';
+  google: GoogleSettings;
+  mcpServers: McpServerConfig[];
 }
 
 export type SettingsPatch = Partial<Omit<Settings, 'hasApiKey' | 'hasGithubToken'>> & {
@@ -117,7 +153,8 @@ export type AgentEvent =
   | { type: 'approval-resolved'; id: string }
   | { type: 'run-state'; conversationId: string; running: boolean }
   | { type: 'conversation'; summary: ConversationSummary }
-  | { type: 'processes'; processes: ProcessInfo[] };
+  | { type: 'processes'; processes: ProcessInfo[] }
+  | { type: 'connectors'; connectors: ConnectorStatus[] };
 
 export interface ZehnoraApi {
   listConversations(): Promise<ConversationSummary[]>;
@@ -136,6 +173,12 @@ export interface ZehnoraApi {
   connectAccount(email: string, password: string, create: boolean): Promise<AccountStatus>;
   accountStatus(): Promise<AccountStatus>;
   signOut(): Promise<void>;
+  listConnectors(): Promise<ConnectorStatus[]>;
+  connectGoogle(services: GoogleService[]): Promise<ConnectorStatus[]>;
+  disconnectGoogle(): Promise<ConnectorStatus[]>;
+  saveMcpServer(config: McpServerConfig): Promise<ConnectorStatus[]>;
+  removeMcpServer(id: string): Promise<ConnectorStatus[]>;
+  reconnectMcpServer(id: string): Promise<ConnectorStatus[]>;
   listProcesses(): Promise<ProcessInfo[]>;
   stopProcess(id: string): Promise<void>;
   openExternal(url: string): Promise<void>;

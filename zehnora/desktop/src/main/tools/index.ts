@@ -18,7 +18,7 @@ const schemas: Record<Mode, ToolSchema[]> = {
   work: [...byMode.work.values()].map(toSchema),
 };
 
-function toSchema(tool: Tool): ToolSchema {
+export function toSchema(tool: Tool): ToolSchema {
   return { type: 'function', function: { name: tool.name, description: tool.description, parameters: tool.parameters } };
 }
 

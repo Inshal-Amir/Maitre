@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactElement } from 'react';
-import type { AccountStatus, ApprovalPolicy, ModelStatus, Settings as SettingsType, SettingsPatch } from '../../shared/types';
+import type { AccountStatus, ConnectorStatus, ApprovalPolicy, ModelStatus, Settings as SettingsType, SettingsPatch } from '../../shared/types';
+import { Connectors } from './Connectors';
 import { Icon } from './Icon';
 import { api } from '../state';
 
@@ -10,10 +11,11 @@ const POLICIES: { value: ApprovalPolicy; title: string; text: string }[] = [
   { value: 'never', title: 'Never ask', text: 'Zehnora acts without asking. Only use this if you trust the task completely.' },
 ];
 
-export function Settings({ settings, status, account, onSignOut, onSave, onClose }: {
+export function Settings({ settings, status, account, connectors, onSignOut, onSave, onClose }: {
   settings: SettingsType;
   status: ModelStatus | null;
   account: AccountStatus | null;
+  connectors: ConnectorStatus[];
   onSignOut(): Promise<void>;
   onSave(patch: SettingsPatch): Promise<void>;
   onClose(): void;
@@ -78,6 +80,13 @@ export function Settings({ settings, status, account, onSignOut, onSave, onClose
               </div>
             </section>
           )}
+          <Connectors
+            statuses={connectors}
+            servers={settings.mcpServers}
+            google={draft.google}
+            onGoogle={(google) => set('google', google)}
+            saveGoogle={async () => { await api().saveSettings({ google: draft.google }); }}
+          />
           <section>
             <h3>Model</h3>
             <label>

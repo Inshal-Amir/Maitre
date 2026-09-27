@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, powerSaveBlocker, session, shell } from 'electron';
-import type { AgentEvent, ApprovalDecision, Conversation, Mode, ModelStatus, SettingsPatch } from '../shared/types';
+import type { AgentEvent, ApprovalDecision, Conversation, GoogleService, McpServerConfig, Mode, ModelStatus, SettingsPatch } from '../shared/types';
 import { initShellEnvironment, listProcesses, setExtraEnv, stopAllProcesses, stopProcess, watchProcesses } from './tools/shell';
 import { getSettings, readSecret, saveSettings } from './settings';
 import { configureBackups } from './tools/files';
 import { protectPaths } from './tools/policy';
+import { Connectors } from './mcp/connectors';
 import { Runtime } from './agent/runtime';
 import { checkModel } from './llm';
 import * as account from './account';
@@ -23,11 +24,15 @@ function emit(event: AgentEvent): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('zehnora:event', event);
 }
 
+const connectors = new Connectors((statuses) => emit({ type: 'connectors', connectors: statuses }));
+
 const runtime = new Runtime({
   settings: getSettings,
   apiKey: () => readSecret('api-key'),
   save: store.save,
   emit,
+  extraTools: () => connectors.tools(),
+  connectedApps: () => connectors.connectedApps(),
 });
 
 function applyGithubToken(): void {
@@ -127,6 +132,12 @@ function registerIpc(): void {
   handle('account:connect', (email: string, password: string, create: boolean) => account.connect(email, password, create));
   handle('account:status', () => account.status());
   handle('account:sign-out', () => account.signOut());
+  handle('connectors:list', () => connectors.statuses());
+  handle('connectors:google-connect', (services: GoogleService[]) => connectors.connectGoogle(services));
+  handle('connectors:google-disconnect', () => connectors.disconnectGoogle());
+  handle('connectors:save', (config: McpServerConfig) => connectors.saveServer(config));
+  handle('connectors:remove', (id: string) => connectors.removeServer(id));
+  handle('connectors:reconnect', (id: string) => connectors.reconnect(id));
   handle('processes:list', () => listProcesses());
   handle('processes:stop', (id: string) => {
     stopProcess(id);
@@ -189,6 +200,7 @@ app.whenReady().then(async () => {
   createWindow();
   powerSaveBlocker.start('prevent-app-suspension');
   await initShellEnvironment();
+  connectors.start().catch((error: Error) => console.error('[zehnora] connectors failed to start', error));
 });
 
 app.on('activate', () => {
@@ -198,6 +210,7 @@ app.on('activate', () => {
 app.on('before-quit', () => {
   runtime.stopAll();
   stopAllProcesses();
+  connectors.manager.closeAll();
 });
 
 app.on('window-all-closed', () => {

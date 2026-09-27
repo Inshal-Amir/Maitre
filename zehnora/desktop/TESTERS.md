@@ -20,6 +20,8 @@ The app is not yet signed by Apple/Microsoft, so the system warns once:
 2. **Chat** (left switch): normal questions, web search, GitHub search.
 3. **Work**: Zehnora does tasks on your computer, e.g. "Create a React app called todo-app and run it", "Set up PostgreSQL in Docker", "Check which developer tools I have". Work tasks use your default folder `~/Zehnora` (change it with the folder button at the top right).
 
+4. **Google (optional):** Settings (gear, bottom left) → Connected apps → choose Gmail / Calendar / Drive / Docs / Sheets → **Connect Google**, sign in in your browser (Google may say the app is not verified yet: click **Continue**). Then ask e.g. "Summarize my unread emails" or "What's on my calendar this week?". Sending email or deleting events always asks you first.
+
 Risky actions (deleting, `git push`, `sudo`, installing system software, changes outside the working folder) always show **Allow / Deny** first. Deleted files go to the Trash / Recycle Bin.
 
 ## Please tell us

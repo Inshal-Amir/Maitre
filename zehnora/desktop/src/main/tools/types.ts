@@ -1,4 +1,4 @@
-import type { JsonSchema } from '../llm';
+import type { JsonSchema, McpInputSchema } from '../llm';
 import type { Mode, Risk } from '../../shared/types';
 
 export type ArgValue = string | number | boolean | null | ArgValue[] | { [key: string]: ArgValue };
@@ -22,7 +22,7 @@ export interface Assessment {
 export interface Tool {
   name: string;
   description: string;
-  parameters: JsonSchema;
+  parameters: JsonSchema | McpInputSchema;
   modes: Mode[];
   assess(args: Args, context: ToolContext): Assessment;
   run(args: Args, context: ToolContext): Promise<string>;

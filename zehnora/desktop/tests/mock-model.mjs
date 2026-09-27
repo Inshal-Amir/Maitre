@@ -23,6 +23,9 @@ export function scenario(body) {
   if (/delete hello/i.test(task)) {
     return { tool_calls: [{ name: 'run_command', arguments: JSON.stringify({ command: 'rm -rf hello', reason: 'remove the test folder' }) }] };
   }
+  if (/save a note/i.test(task)) {
+    return { tool_calls: [{ name: 'my_notes_add_note', arguments: JSON.stringify({ text: 'call Ali' }) }] };
+  }
   if (/search web/i.test(task)) {
     return { tool_calls: [{ name: 'web_search', arguments: JSON.stringify({ query: 'Electron safeStorage API documentation', max_results: 5 }) }] };
   }

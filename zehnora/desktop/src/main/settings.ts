@@ -5,7 +5,29 @@ import { app, safeStorage } from 'electron';
 import type { Settings, SettingsPatch } from '../shared/types';
 
 type StoredSettings = Omit<Settings, 'hasApiKey' | 'hasGithubToken'>;
-type SecretName = 'api-key' | 'github-token' | 'session';
+export type SecretName = 'api-key' | 'github-token' | 'session' | 'google' | `mcp-${string}`;
+
+interface GoogleClientFile {
+  installed?: { client_id: string; client_secret?: string };
+  web?: { client_id: string; client_secret?: string };
+  client_id?: string;
+  client_secret?: string;
+}
+
+/** The owner's Google OAuth client, packed into the installer from build-config/google-oauth.json (the file Google Cloud downloads). */
+function bundledGoogleClient(): { clientId: string; clientSecret: string } {
+  const candidates = [path.join(process.resourcesPath ?? '', 'google-oauth.json'), path.join(__dirname, '../../build-config/google-oauth.json')];
+  for (const file of candidates) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(file, 'utf8')) as GoogleClientFile;
+      const entry = parsed.installed ?? parsed.web ?? parsed;
+      if (entry.client_id) return { clientId: entry.client_id, clientSecret: entry.client_secret ?? '' };
+    } catch {
+      /* not bundled */
+    }
+  }
+  return { clientId: process.env.ZEHNORA_GOOGLE_CLIENT_ID ?? '', clientSecret: process.env.ZEHNORA_GOOGLE_CLIENT_SECRET ?? '' };
+}
 
 const DEFAULTS: StoredSettings = {
   apiBase: process.env.ZEHNORA_API_BASE ?? 'https://api.dubg.dev/v1',
@@ -18,23 +40,31 @@ const DEFAULTS: StoredSettings = {
   contextTokens: 60_000,
   maxOutputTokens: 8192,
   theme: 'system',
+  google: {
+    ...bundledGoogleClient(),
+    services: ['gmail', 'calendar', 'drive', 'docs', 'sheets'],
+    official: false,
+  },
+  mcpServers: [],
 };
 
-const ENV_SECRETS: Record<SecretName, string | undefined> = {
+const ENV_SECRETS: Partial<Record<SecretName, string>> = {
   'api-key': process.env.ZEHNORA_API_KEY,
   'github-token': process.env.ZEHNORA_GITHUB_TOKEN,
-  session: undefined,
 };
 
 const settingsFile = (): string => path.join(app.getPath('userData'), 'settings.json');
-const secretFile = (name: SecretName): string => path.join(app.getPath('userData'), 'secrets', `${name}.bin`);
+const secretFile = (name: SecretName): string => path.join(app.getPath('userData'), 'secrets', `${name.replace(/[^a-z0-9-]/gi, '_')}.bin`);
 
 let cache: StoredSettings | null = null;
 
 function load(): StoredSettings {
   if (cache) return cache;
   try {
-    cache = { ...DEFAULTS, ...JSON.parse(fs.readFileSync(settingsFile(), 'utf8')) };
+    const stored = JSON.parse(fs.readFileSync(settingsFile(), 'utf8')) as Partial<StoredSettings>;
+    const google = { ...DEFAULTS.google, ...stored.google };
+    if (!google.clientId) ({ clientId: google.clientId, clientSecret: google.clientSecret } = DEFAULTS.google);
+    cache = { ...DEFAULTS, ...stored, google };
   } catch {
     cache = { ...DEFAULTS };
   }

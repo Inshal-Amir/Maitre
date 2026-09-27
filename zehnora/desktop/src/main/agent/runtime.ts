@@ -5,7 +5,7 @@ import type { AgentEvent, AssistantMessage, Conversation, Settings, ToolCall, Us
 import type { ApiToolCall } from '../llm';
 import type { Args, Tool, ToolContext } from '../tools/types';
 import { Approvals, needsApproval } from './approvals';
-import { toolsFor, schemasFor } from '../tools';
+import { toolsFor, schemasFor, toSchema } from '../tools';
 import { ToolError } from '../tools/types';
 import { buildMessages } from './context';
 import { systemPrompt } from './prompts';
@@ -20,6 +20,10 @@ export interface RuntimeDeps {
   apiKey(): string | null;
   save(conversation: Conversation): void;
   emit(event: AgentEvent): void;
+  /** Tools from connected MCP servers, available in both modes. */
+  extraTools?(): Tool[];
+  /** One line per connected app, for the system prompt. */
+  connectedApps?(): string[];
 }
 
 const newId = (): string => crypto.randomUUID();
@@ -120,8 +124,9 @@ export class Runtime {
   }
 
   private async loop(conversation: Conversation, signal: AbortSignal): Promise<void> {
-    const tools = toolsFor(conversation.mode);
-    const schemas = schemasFor(conversation.mode);
+    const extra = this.deps.extraTools?.() ?? [];
+    const tools = new Map([...toolsFor(conversation.mode), ...extra.map((tool): [string, Tool] => [tool.name, tool])]);
+    const schemas = [...schemasFor(conversation.mode), ...extra.map(toSchema)];
     const failures = new Map<string, number>();
     const maxSteps = MAX_STEPS[conversation.mode];
 
@@ -137,7 +142,7 @@ export class Runtime {
       }
 
       const cwd = this.workDir(conversation);
-      const request = buildMessages(systemPrompt(conversation.mode, cwd), conversation.messages.slice(0, -1), schemas, settings.contextTokens, settings.maxOutputTokens);
+      const request = buildMessages(systemPrompt(conversation.mode, cwd, this.deps.connectedApps?.() ?? []), conversation.messages.slice(0, -1), schemas, settings.contextTokens, settings.maxOutputTokens);
       let result;
       try {
         result = await complete(

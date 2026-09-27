@@ -134,13 +134,32 @@ try {
   check('settings dialog opens with policy options', (await page.locator('.policy-option').count()) === 3);
   const accountText = await page.innerText('.account-row');
   check('settings show the account and its credits', /tester@example.com/.test(accountText) && /2,?000/.test(accountText), accountText.replace(/\n/g, ' | '));
+  const googleCard = await page.innerText('.connector');
+  check('connected apps list Google with its services', /Google/.test(googleCard) && /Gmail/.test(googleCard) && /Calendar/.test(googleCard), googleCard.split('\n').slice(0, 3).join(' | '));
+  await page.click('button:has-text("+ Add MCP server")');
+  await page.fill('.custom-servers input[placeholder="e.g. Notion"]', 'My Notes');
+  await page.selectOption('.custom-servers select', 'stdio');
+  await page.fill('.custom-servers input[placeholder="npx"]', process.execPath);
+  await page.fill('.custom-servers input[placeholder^="-y"]', path.join(here, 'fixtures/notes-server.mjs'));
+  await page.click('button:has-text("Add and connect")');
+  await page.waitForSelector('.connector-row:has-text("3 tools")', { timeout: 30_000 });
+  check('custom MCP server added from settings connects (3 tools)', true);
+  await page.screenshot({ path: path.join(evidence, '09-connectors.png') });
   await page.keyboard.press('Escape');
+
+  await page.click('.mode-switch button:has-text("Chat")');
+  await page.click('.new-chat');
+  await send(page, 'save a note for me');
+  await lastAssistant(page).locator('.markdown:has-text("saved note 1")').waitFor({ timeout: 20_000 });
+  const noteTools = mock.requests[mock.requests.length - 1].tools.map((t) => t.function.name);
+  check('agent uses the MCP tool in Chat mode', noteTools.includes('my_notes_add_note'), (await lastAssistant(page).innerText()).split('\n').slice(-1)[0]);
+  await page.click('.mode-switch button:has-text("Work")');
 
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.screenshot({ path: path.join(evidence, '08-work-dark.png') });
 
   const stored = fs.readdirSync(path.join(userData, 'conversations')).length;
-  check('conversations are saved to disk', stored >= 4, `${stored} files`);
+  check('conversations are saved to disk', stored >= 5, `${stored} files`);
 } catch (error) {
   check('unexpected error', false, error.stack);
 } finally {

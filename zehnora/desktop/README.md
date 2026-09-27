@@ -6,6 +6,10 @@ Electron app (Mac and Windows) with its own UI and agent runtime, connected to t
 
 First launch shows **Create account / Sign in**. The app calls the portal API (`https://console.dubg.dev/platform/v1`: register or login, then `POST /keys` named after the computer) and stores the new key and the session in the OS keychain. Settings shows the account, its credits, and Sign out; "I already have an API key" still allows pasting a key. Tester instructions: `TESTERS.md`.
 
+## Connected apps (MCP)
+
+`src/main/mcp`: an MCP client (official `@modelcontextprotocol/sdk`) for remote servers (Streamable HTTP with MCP OAuth) and local ones (stdio). Their tools join the agent in both modes as `<prefix>_<tool>`; approval risk comes from tool annotations (`readOnlyHint` → safe, `destructiveHint` or names like send/delete/share → risky). **Google** is built in (`src/main/google`: OAuth PKCE sign-in + an in-process MCP server for Gmail, Calendar, Drive, Docs, Sheets), or can use Google's hosted MCP servers. Owner setup: `../docs/GOOGLE-SETUP.md`.
+
 ## Two modes
 
 | | Chat | Work |

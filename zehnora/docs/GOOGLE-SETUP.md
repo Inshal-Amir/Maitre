@@ -1,30 +1,32 @@
-# Google Workspace connector setup
+# Google connector setup (Zehnora Desktop)
 
-**Status: BLOCKED on owner credentials.** The connector is installed and its tool selection is verified; no Google account has been connected, and no Gmail/Drive/Calendar/Docs/Sheets action has been tested yet.
+Zehnora Desktop connects to Google through MCP. Users click **Settings → Connected apps → Connect Google**, sign in with their own Google account in the browser, and the agent can then use Gmail, Calendar, Drive, Docs and Sheets in Chat and Work mode.
 
-## Connector choice
-- Candidate inspected: `taylorwilsdon/google_workspace_mcp` (community connector, **not** an official Google server). MIT license, actively maintained (last push 2026-09-21), GitHub release **v1.27.1** = PyPI `workspace-mcp==1.27.1` (pinned in `zehnora/connectors/google/uv.lock`).
-- Transport used: **stdio, `--single-user`**. One connector process per desktop user, launched by that user's LibreChat, so credentials are not shared between unrelated LibreChat users.
-- Tool selection (verified by listing tools with the pinned build): tier `extended` for gmail, drive, calendar, docs, sheets, minus 33 disabled tools, leaving **19**: `search_gmail_messages, get_gmail_message_content, draft_gmail_message, search_drive_files, get_drive_file_content, list_drive_items, create_drive_folder, create_drive_file, update_drive_file, list_calendars, get_events, manage_event, get_doc_content, create_doc, modify_doc_text, list_spreadsheets, read_sheet_values, modify_sheet_values, create_spreadsheet`.
-- **Disabled on purpose:** `send_gmail_message`, sharing and permission tools, filters/labels. LibreChat v0.8.7 has no per-action approval step, so sends/invitations/sharing cannot be tied to an exact approval. The agent creates **drafts**; you send them from Gmail. A demo send can be added later with a real approval flow.
-- `manage_event` can also delete events; the Desktop agent instructions forbid deletion, but that is prompt-level only. Use a dedicated demo calendar.
+## How it works
+- **Built-in connector (default):** an MCP server that runs inside the app (`desktop/src/main/google/server.ts`) and calls the Google REST APIs with the user's token. 15 tools:
+  - Gmail: `gmail_search`, `gmail_read`, `gmail_create_draft`, `gmail_send` (approval)
+  - Calendar: `calendar_list_events`, `calendar_create_event` (no invitation emails), `calendar_delete_event` (approval)
+  - Drive: `drive_search`, `drive_read_file`, `drive_create_file`
+  - Docs: `docs_create`, `docs_append`
+  - Sheets: `sheets_read`, `sheets_write`, `sheets_create`
+- **Google's hosted MCP servers (optional):** `https://gmailmcp.googleapis.com/mcp/v1` etc. They are in the Google Workspace **Developer Preview**, so they only work for a project enrolled in that program. Tick "Use Google's hosted MCP servers" under Advanced; the same Google token is sent to them.
+- Sign-in is Google's installed-app OAuth flow: PKCE, a loopback redirect to `http://127.0.0.1:<random port>/callback`, `access_type=offline`. The refresh token is stored in the OS keychain (Electron `safeStorage`); access tokens refresh automatically. Disconnect revokes the token at Google.
+- Sending mail and deleting events always show the approval card (tool annotations `destructiveHint`); reading and searching run without asking.
 
-## Owner steps (Google Cloud console)
-1. Create a Google Cloud project (e.g. "Zehnora Desktop Demo").
-2. APIs & Services → Library → enable: **Gmail API, Google Drive API, Google Calendar API, Google Docs API, Google Sheets API**.
-3. OAuth consent screen: User type **External**, publishing status **Testing**, add yourself and the demo account as **test users**. Testing mode limits access to listed test users, and refresh tokens for testing-mode apps can expire after about 7 days (reconnect when that happens). Restricted scopes (Gmail) may need Google verification before any public release; this demo does not claim arbitrary public users can connect Gmail.
-4. Credentials → Create credentials → OAuth client ID. The connector's stdio flow redirects to `http://localhost:8765/oauth2callback` (`WORKSPACE_MCP_PORT=8765`). **Verify the correct client type against the connector's docs for v1.27.1 before creating it**: Desktop-app and Web-app clients are not interchangeable. For a Web application client, add the exact redirect URI `http://localhost:8765/oauth2callback`.
-5. Download the client JSON and save it as `.local-dev/client/secrets/google-client-secret.json` (Mac development) with `chmod 600`. Never commit it, paste it into chat, or put it in a prompt.
-6. Restart Desktop (`zehnora/scripts/mac/start-desktop.sh`); the launcher logs "Google Workspace connector enabled".
-7. In Zehnora Desktop, ask the Google agent to list your calendars. The connector returns a Google sign-in link; open it in your normal browser and consent. The model never sees your Google password.
+## Owner steps (once, in Google Cloud console)
+1. Create a project, e.g. "Zehnora Desktop".
+2. APIs & Services → Library → enable **Gmail API, Google Calendar API, Google Drive API, Google Docs API, Google Sheets API**.
+3. OAuth consent screen (Google Auth Platform → Branding / Audience): app name "Zehnora", support email, audience **External**, publishing status **Testing**.
+4. Audience → **Test users**: add the Google accounts of every tester (up to 100). Only these accounts can sign in while the app is in Testing. Refresh tokens of Testing apps expire after 7 days, so testers reconnect weekly.
+5. Data access → add scopes: `openid`, `email`, `gmail.readonly`, `gmail.compose`, `calendar.events`, `drive.readonly`, `drive.file`, `documents`, `spreadsheets`.
+6. Clients → **Create client → Application type: Desktop app** → name "Zehnora Desktop" → **Download JSON**.
+7. Save that file as `zehnora/desktop/build-config/google-oauth.json` (git-ignored; never commit it) and rebuild the installers (`npm run dist:mac`, `npm run dist:win`). The client is then packed into the app and testers only click Connect Google.
+   - Without rebuilding: paste the client ID and secret in Settings → Connected apps → Advanced.
+   - The client secret of a Desktop-app client is not confidential by Google's definition (it ships inside installed apps); PKCE protects the flow.
 
-Tokens are stored in `.local-dev/client/secrets/google-credentials/` (user-only folder). They are plain JSON files protected by filesystem permissions, not the OS keychain: a known limitation.
+## Limits
+- Gmail scopes are "restricted": for more than 100 users or a public release, Google requires app verification (and a security assessment for Gmail). Testing mode is enough for the test group.
+- While unverified, Google shows "Google hasn't verified this app": testers click **Continue** (only listed test users get this far).
 
-## Required demonstrations (after connecting): record real IDs and contents
-| Service | Read test | Write test |
-|---|---|---|
-| Gmail | Find/read a designated test message | Create a **draft** (sending is disabled) |
-| Calendar | List events in a demo calendar/time range | Create then update a demo event (no attendees); check timezone and event ID |
-| Drive | List/search a demo folder | Create a demo folder; move/rename a test file (`update_drive_file`); no sharing |
-| Docs | Read a designated document | Create a document and append a paragraph; read it back |
-| Sheets | Read a designated range | Create/update a demo range; read the cells back |
+## Other MCP servers
+Settings → Connected apps → **Add MCP server** accepts a remote URL (Streamable HTTP, with MCP OAuth sign-in and dynamic client registration; redirect `http://127.0.0.1:33418/mcp/callback`) or a local command (stdio, e.g. `npx -y @modelcontextprotocol/server-filesystem ~/Documents`). Their tools appear to the agent as `<server name>_<tool>`, with approval risk taken from the tools' annotations and names.

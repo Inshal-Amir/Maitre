@@ -90,7 +90,7 @@ export function App(): ReactElement {
         )}
         {!needsAccount && <Composer mode={mode} running={running} disabled={false} onSend={state.send} onStop={state.stop} seed={seed} />}
       </main>
-      {settingsOpen && state.settings && <Settings settings={state.settings} status={state.status} account={state.account} onSignOut={state.signOut} onSave={state.saveSettings} onClose={closeSettings} />}
+      {settingsOpen && state.settings && <Settings settings={state.settings} status={state.status} account={state.account} connectors={state.connectors} onSignOut={state.signOut} onSave={state.saveSettings} onClose={closeSettings} />}
     </div>
   );
 }

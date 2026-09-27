@@ -13,7 +13,14 @@ export type ApiMessage =
 
 export interface ToolSchema {
   type: 'function';
-  function: { name: string; description: string; parameters: JsonSchema };
+  function: { name: string; description: string; parameters: JsonSchema | McpInputSchema };
+}
+
+/** A tool input schema from an MCP server: passed to the model unchanged. */
+export interface McpInputSchema {
+  type: 'object';
+  properties?: { [key: string]: object };
+  required?: string[];
 }
 
 export interface JsonSchema {
