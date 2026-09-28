@@ -61,9 +61,10 @@ function shrinkOldToolResults(groups: Group[]): void {
  * Builds the request messages within the context budget: first older tool outputs are shortened,
  * then the oldest turns are dropped (the first user message is kept for the task statement).
  */
-export function buildMessages(system: string, messages: Message[], tools: ToolSchema[], contextTokens: number, maxOutputTokens: number): ApiMessage[] {
+export function buildMessages(system: string, messages: Message[], tools: ToolSchema[], contextTokens: number, maxOutputTokens: number, summary?: { text: string; upTo: number }): ApiMessage[] {
   const budget = contextTokens - maxOutputTokens - estimateTokens(system) - estimateTokens(JSON.stringify(tools));
-  const groups = toGroups(messages);
+  const groups = toGroups(summary ? messages.slice(summary.upTo) : messages);
+  if (summary) groups.unshift([{ role: 'user', content: `[Summary of the earlier part of this conversation, written to save space]\n${summary.text}` }]);
   const total = (): number => groups.reduce((sum, group) => sum + group.reduce((s, m) => s + sizeOf(m), 0), 0);
   if (total() > budget) shrinkOldToolResults(groups);
   let dropped = 0;

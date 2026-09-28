@@ -32,7 +32,7 @@ function loadAll(): void {
   }
 }
 
-export const summarize = ({ messages: _messages, ...summary }: Conversation): ConversationSummary => summary;
+export const summarize = ({ messages: _messages, summary, ...rest }: Conversation): ConversationSummary => ({ ...rest, compactedAt: summary?.upTo });
 
 export function list(): ConversationSummary[] {
   loadAll();

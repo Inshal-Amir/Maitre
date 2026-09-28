@@ -1,6 +1,7 @@
 import os from 'node:os';
 import type { Mode } from '../../shared/types';
 import { shellName } from '../tools/shell';
+import { memoryPrompt } from '../memory';
 
 const OS_NAMES: Partial<Record<NodeJS.Platform, string>> = { darwin: 'macOS', win32: 'Windows', linux: 'Linux' };
 
@@ -49,5 +50,6 @@ Read and search freely. Create drafts rather than sending email unless the user 
 
 export function systemPrompt(mode: Mode, cwd: string, apps: string[] = []): string {
   const connected = apps.length ? `\n\n${APPS}\n${apps.map((app) => `- ${app}`).join('\n')}` : '';
-  return `${mode === 'chat' ? CHAT : WORK}${connected}\n\nEnvironment:\n${environment(cwd)}`;
+  const memory = memoryPrompt();
+  return `${mode === 'chat' ? CHAT : WORK}${connected}${memory ? `\n\n${memory}` : ''}\n\nEnvironment:\n${environment(cwd)}`;
 }

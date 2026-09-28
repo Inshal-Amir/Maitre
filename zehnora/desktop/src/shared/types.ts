@@ -49,12 +49,21 @@ export interface ConversationSummary {
   mode: Mode;
   title: string;
   cwd?: string;
+  /** Messages before this index were summarized to fit the context window. */
+  compactedAt?: number;
   createdAt: number;
   updatedAt: number;
 }
 
 export interface Conversation extends ConversationSummary {
   messages: Message[];
+  summary?: { text: string; upTo: number };
+}
+
+export interface Memory {
+  id: string;
+  text: string;
+  createdAt: number;
 }
 
 export type GoogleService = 'gmail' | 'calendar' | 'drive' | 'docs' | 'sheets';
@@ -106,6 +115,7 @@ export interface Settings {
   theme: 'system' | 'light' | 'dark';
   google: GoogleSettings;
   mcpServers: McpServerConfig[];
+  memoryEnabled: boolean;
 }
 
 export type SettingsPatch = Partial<Omit<Settings, 'hasApiKey' | 'hasGithubToken'>> & {
@@ -154,7 +164,9 @@ export type AgentEvent =
   | { type: 'run-state'; conversationId: string; running: boolean }
   | { type: 'conversation'; summary: ConversationSummary }
   | { type: 'processes'; processes: ProcessInfo[] }
-  | { type: 'connectors'; connectors: ConnectorStatus[] };
+  | { type: 'connectors'; connectors: ConnectorStatus[] }
+  | { type: 'memories'; memories: Memory[] }
+  | { type: 'waiting'; conversationId: string; phase: 'compacting' | 'model' | null };
 
 export interface ZehnoraApi {
   listConversations(): Promise<ConversationSummary[]>;
@@ -179,6 +191,9 @@ export interface ZehnoraApi {
   saveMcpServer(config: McpServerConfig): Promise<ConnectorStatus[]>;
   removeMcpServer(id: string): Promise<ConnectorStatus[]>;
   reconnectMcpServer(id: string): Promise<ConnectorStatus[]>;
+  listMemories(): Promise<Memory[]>;
+  deleteMemory(id: string): Promise<void>;
+  clearMemories(): Promise<void>;
   listProcesses(): Promise<ProcessInfo[]>;
   stopProcess(id: string): Promise<void>;
   openExternal(url: string): Promise<void>;

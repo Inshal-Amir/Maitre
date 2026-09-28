@@ -46,6 +46,7 @@ const DEFAULTS: StoredSettings = {
     official: false,
   },
   mcpServers: [],
+  memoryEnabled: true,
 };
 
 const ENV_SECRETS: Partial<Record<SecretName, string>> = {

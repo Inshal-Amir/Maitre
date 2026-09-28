@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactElement } from 'react';
-import type { AccountStatus, ConnectorStatus, ApprovalPolicy, ModelStatus, Settings as SettingsType, SettingsPatch } from '../../shared/types';
+import type { AccountStatus, ConnectorStatus, Memory, ApprovalPolicy, ModelStatus, Settings as SettingsType, SettingsPatch } from '../../shared/types';
 import { Connectors } from './Connectors';
 import { Icon } from './Icon';
 import { api } from '../state';
@@ -11,11 +11,12 @@ const POLICIES: { value: ApprovalPolicy; title: string; text: string }[] = [
   { value: 'never', title: 'Never ask', text: 'Zehnora acts without asking. Only use this if you trust the task completely.' },
 ];
 
-export function Settings({ settings, status, account, connectors, onSignOut, onSave, onClose }: {
+export function Settings({ settings, status, account, connectors, memories, onSignOut, onSave, onClose }: {
   settings: SettingsType;
   status: ModelStatus | null;
   account: AccountStatus | null;
   connectors: ConnectorStatus[];
+  memories: Memory[];
   onSignOut(): Promise<void>;
   onSave(patch: SettingsPatch): Promise<void>;
   onClose(): void;
@@ -87,6 +88,28 @@ export function Settings({ settings, status, account, connectors, onSignOut, onS
             onGoogle={(google) => set('google', google)}
             saveGoogle={async () => { await api().saveSettings({ google: draft.google }); }}
           />
+          <section>
+            <h3>Memory</h3>
+            <label className="check">
+              <input type="checkbox" checked={draft.memoryEnabled} onChange={(event) => set('memoryEnabled', event.target.checked)} />
+              Let Zehnora remember facts and preferences you share (in Chat and Work). Say "remember that…" or "forget…".
+            </label>
+            {memories.length ? (
+              <div className="memory-list">
+                {memories.map((memory) => (
+                  <div key={memory.id} className="memory">
+                    <span>{memory.text}</span>
+                    <button type="button" className="icon-btn" aria-label="Delete memory" onClick={() => api().deleteMemory(memory.id)}>
+                      <Icon name="trash" size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button type="button" className="link" onClick={() => api().clearMemories()}>Clear all memories</button>
+              </div>
+            ) : (
+              <div className="field-note">Nothing remembered yet.</div>
+            )}
+          </section>
           <section>
             <h3>Model</h3>
             <label>

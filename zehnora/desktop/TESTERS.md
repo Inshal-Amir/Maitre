@@ -6,9 +6,9 @@ Thank you for testing Zehnora. The app talks to the Zehnora model running on our
 
 | Computer | File |
 |---|---|
-| Windows 10/11 | `Zehnora-Setup-0.2.0.exe` |
-| Mac with Apple Silicon (M1–M4) | `Zehnora-0.2.0-mac-arm64.dmg` |
-| Mac with Intel | `Zehnora-0.2.0-mac-x64.dmg` |
+| Windows 10/11 | `Zehnora-Setup-0.3.0.exe` |
+| Mac with Apple Silicon (M1–M4) | `Zehnora-0.3.0-mac-arm64.dmg` |
+| Mac with Intel | `Zehnora-0.3.0-mac-x64.dmg` |
 
 The app is not yet signed by Apple/Microsoft, so the system warns once:
 - **Windows:** "Windows protected your PC" → **More info** → **Run anyway**.

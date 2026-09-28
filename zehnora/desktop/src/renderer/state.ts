@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AccountStatus, ApprovalRequest, ConnectorStatus, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, ZehnoraApi } from '../shared/types';
+import type { AccountStatus, ApprovalRequest, ConnectorStatus, Memory, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, ZehnoraApi } from '../shared/types';
 
 declare global {
   interface Window {
@@ -43,6 +43,8 @@ export interface AppState {
   status: ModelStatus | null;
   account: AccountStatus | null;
   connectors: ConnectorStatus[];
+  memories: Memory[];
+  waiting: Map<string, 'compacting' | 'model'>;
   signOut(): Promise<void>;
   setMode(mode: Mode): void;
   open(id: string): Promise<void>;
@@ -67,6 +69,8 @@ export function useAppState(): AppState {
   const [status, setStatus] = useState<ModelStatus | null>(null);
   const [account, setAccount] = useState<AccountStatus | null>(null);
   const [connectors, setConnectors] = useState<ConnectorStatus[]>([]);
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [waiting, setWaiting] = useState<Map<string, 'compacting' | 'model'>>(new Map());
 
   const refreshStatus = useCallback(async () => {
     const [model, who, current] = await Promise.all([api().modelStatus(), api().accountStatus(), api().getSettings()]);
@@ -80,6 +84,7 @@ export function useAppState(): AppState {
     api().getSettings().then(setSettings);
     api().listProcesses().then(setProcesses);
     api().listConnectors().then(setConnectors);
+    api().listMemories().then(setMemories);
     refreshStatus();
     const timer = setInterval(refreshStatus, 60_000);
     const off = api().onEvent((event) => {
@@ -95,12 +100,26 @@ export function useAppState(): AppState {
           else next.delete(event.conversationId);
           return next;
         });
+        if (!event.running) setWaiting((map) => {
+          const next = new Map(map);
+          next.delete(event.conversationId);
+          return next;
+        });
       } else if (event.type === 'approval') {
         setApprovals((list) => [...list, event.request]);
       } else if (event.type === 'approval-resolved') {
         setApprovals((list) => list.filter((request) => request.id !== event.id));
       } else if (event.type === 'processes') {
         setProcesses(event.processes);
+      } else if (event.type === 'memories') {
+        setMemories(event.memories);
+      } else if (event.type === 'waiting') {
+        setWaiting((map) => {
+          const next = new Map(map);
+          if (event.phase) next.set(event.conversationId, event.phase);
+          else next.delete(event.conversationId);
+          return next;
+        });
       } else if (event.type === 'connectors') {
         api().listConnectors().then(setConnectors);
         api().getSettings().then(setSettings);
@@ -175,5 +194,5 @@ export function useAppState(): AppState {
 
   const visible = useMemo(() => conversations.filter((entry) => entry.mode === mode && entry.title !== 'New chat'), [conversations, mode]);
 
-  return { mode, conversations: visible, active, running, approvals, processes, settings, status, account, connectors, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, saveSettings, refreshStatus };
+  return { mode, conversations: visible, active, running, approvals, processes, settings, status, account, connectors, memories, waiting, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, saveSettings, refreshStatus };
 }

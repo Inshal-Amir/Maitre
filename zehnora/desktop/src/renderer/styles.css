@@ -79,7 +79,7 @@ code, pre { font-family: var(--mono); }
 .brand-mark, .avatar, .welcome-mark { display: grid; place-items: center; border-radius: 8px; background: var(--brand); color: #fff; font-weight: 700; }
 .brand-mark { width: 24px; height: 24px; font-size: 13px; }
 
-.mode-switch { margin: 6px 12px 10px; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; background: var(--panel-2); border-radius: 11px; }
+.mode-switch { margin: 6px 12px 4px; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; background: var(--panel-2); border-radius: 11px; }
 .mode-switch button { display: flex; align-items: center; justify-content: center; gap: 6px; height: 32px; border-radius: 8px; color: var(--text-2); font-weight: 550; font-size: 14px; }
 .mode-switch button.on { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
 
@@ -308,3 +308,16 @@ code, pre { font-family: var(--mono); }
 .dialog-body select { height: 36px; padding: 0 8px; border-radius: 9px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); font: inherit; font-weight: 400; }
 .dialog-body input[type='checkbox'] { width: 15px; height: 15px; margin: 0; accent-color: var(--brand); flex: none; }
 .dialog-body label.check input { margin-top: 3px; }
+
+/* Streaming */
+.streaming .markdown > :last-child::after { content: ''; display: inline-block; width: 7px; height: 1.05em; margin-left: 2px; vertical-align: -0.15em; background: var(--text); border-radius: 1px; animation: blink 1s steps(2, start) infinite; }
+.reasoning-live { margin: 2px 0 6px; padding-left: 14px; border-left: 2px solid var(--line); color: var(--text-3); font-size: 13px; line-height: 1.5; white-space: pre-wrap; max-height: 4.6em; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 35%); mask-image: linear-gradient(to bottom, transparent, #000 35%); }
+.waiting { display: flex; align-items: center; gap: 10px; color: var(--text-3); font-size: 13.5px; }
+.compacted { margin: 18px auto; max-width: 560px; text-align: center; font-size: 12.5px; color: var(--text-3); border-top: 1px dashed var(--line); padding-top: 8px; }
+@keyframes blink { to { visibility: hidden; } }
+
+.mode-hint { margin: 0 14px 10px; font-size: 12px; color: var(--text-3); line-height: 1.4; }
+.memory-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.memory { display: flex; align-items: center; gap: 8px; padding: 6px 4px 6px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13.5px; }
+.memory span { flex: 1; }
+.memory-list .link { align-self: flex-start; margin-top: 4px; }

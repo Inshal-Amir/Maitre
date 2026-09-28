@@ -10,6 +10,7 @@ import { Connectors } from './mcp/connectors';
 import { Runtime } from './agent/runtime';
 import { checkModel } from './llm';
 import * as account from './account';
+import { clearMemories, deleteMemory, listMemories, watchMemories } from './memory';
 import * as store from './store';
 
 if (process.env.ZEHNORA_USER_DATA) app.setPath('userData', process.env.ZEHNORA_USER_DATA);
@@ -138,6 +139,11 @@ function registerIpc(): void {
   handle('connectors:save', (config: McpServerConfig) => connectors.saveServer(config));
   handle('connectors:remove', (id: string) => connectors.removeServer(id));
   handle('connectors:reconnect', (id: string) => connectors.reconnect(id));
+  handle('memories:list', () => listMemories());
+  handle('memories:delete', (id: string) => {
+    deleteMemory(id);
+  });
+  handle('memories:clear', () => clearMemories());
   handle('processes:list', () => listProcesses());
   handle('processes:stop', (id: string) => {
     stopProcess(id);
@@ -196,6 +202,7 @@ app.whenReady().then(async () => {
   configureBackups(path.join(userData, 'backups'));
   applyGithubToken();
   watchProcesses((processes) => emit({ type: 'processes', processes }));
+  watchMemories((memories) => emit({ type: 'memories', memories }));
   registerIpc();
   createWindow();
   powerSaveBlocker.start('prevent-app-suspension');

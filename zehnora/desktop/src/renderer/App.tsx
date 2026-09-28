@@ -84,13 +84,13 @@ export function App(): ReactElement {
         {needsAccount ? (
           <Onboarding status={state.status} onConnected={state.refreshStatus} onUseKey={() => setSettingsOpen(true)} />
         ) : hasMessages && active ? (
-          <Thread messages={active.messages} approvals={state.approvals} />
+          <Thread messages={active.messages} approvals={state.approvals} waiting={state.waiting.get(active.id)} compactedAt={active.compactedAt ?? active.summary?.upTo} />
         ) : (
           <Welcome mode={mode} onPick={(text) => setSeed({ text, nonce: Date.now() })} />
         )}
         {!needsAccount && <Composer mode={mode} running={running} disabled={false} onSend={state.send} onStop={state.stop} seed={seed} />}
       </main>
-      {settingsOpen && state.settings && <Settings settings={state.settings} status={state.status} account={state.account} connectors={state.connectors} onSignOut={state.signOut} onSave={state.saveSettings} onClose={closeSettings} />}
+      {settingsOpen && state.settings && <Settings settings={state.settings} status={state.status} account={state.account} connectors={state.connectors} memories={state.memories} onSignOut={state.signOut} onSave={state.saveSettings} onClose={closeSettings} />}
     </div>
   );
 }

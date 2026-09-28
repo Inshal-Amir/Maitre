@@ -91,6 +91,7 @@ export function Sidebar({ mode, conversations, activeId, running, status, onMode
           </button>
         ))}
       </div>
+      <div className="mode-hint">{mode === 'chat' ? 'Talk, search the web, use your connected apps.' : 'Acts on this computer: files, terminal, git, Docker.'}</div>
       <button type="button" className="new-chat" onClick={onNew}>
         <Icon name="plus" size={16} />
         {mode === 'chat' ? 'New chat' : 'New task'}

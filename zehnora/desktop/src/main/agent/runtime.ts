@@ -2,12 +2,14 @@ import os from 'node:os';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import type { AgentEvent, AssistantMessage, Conversation, Settings, ToolCall, UserMessage } from '../../shared/types';
-import type { ApiToolCall } from '../llm';
+import type { ApiToolCall, ToolSchema } from '../llm';
 import type { Args, Tool, ToolContext } from '../tools/types';
 import { Approvals, needsApproval } from './approvals';
 import { toolsFor, schemasFor, toSchema } from '../tools';
 import { ToolError } from '../tools/types';
 import { buildMessages } from './context';
+import { compactIfNeeded } from './compact';
+import { summarize } from '../store';
 import { systemPrompt } from './prompts';
 import { ApiError, complete } from '../llm';
 
@@ -47,6 +49,7 @@ function describeError(error: Error): string {
     if (error.status === 402) return 'Your account is out of credits (402). Ask the Zehnora admin to add credits.';
     if (error.status === 429) return 'The model server is busy (429). Try again in a moment.';
     if (error.status === 530 || error.status === 502 || error.status === 503) return 'The Zehnora server is offline right now. Try again later.';
+    if (error.status === 524 || error.status === 504) return 'The model took too long to start answering (it may be busy with another request or restarting). Try again in a minute.';
     return `Model API error: ${error.message}`;
   }
   if (error.name === 'AbortError') return 'Stopped.';
@@ -109,7 +112,7 @@ export class Runtime {
     if (conversation.title === 'New chat') conversation.title = titleFrom(text);
     this.deps.save(conversation);
     this.emitMessage(conversation, user, true);
-    this.deps.emit({ type: 'conversation', summary: { id: conversation.id, mode: conversation.mode, title: conversation.title, cwd: conversation.cwd, createdAt: conversation.createdAt, updatedAt: conversation.updatedAt } });
+    this.deps.emit({ type: 'conversation', summary: summarize(conversation) });
 
     const controller = new AbortController();
     this.runs.set(conversation.id, controller);
@@ -142,30 +145,49 @@ export class Runtime {
       }
 
       const cwd = this.workDir(conversation);
-      const request = buildMessages(systemPrompt(conversation.mode, cwd, this.deps.connectedApps?.() ?? []), conversation.messages.slice(0, -1), schemas, settings.contextTokens, settings.maxOutputTokens);
+      const system = systemPrompt(conversation.mode, cwd, this.deps.connectedApps?.() ?? []);
+      await this.compact(conversation, message, settings, apiKey, system, schemas, signal);
+      if (signal.aborted) {
+        this.finishWithError(conversation, message, 'Stopped.');
+        return;
+      }
+      const request = buildMessages(system, conversation.messages.slice(0, -1), schemas, settings.contextTokens, settings.maxOutputTokens, conversation.summary);
+      const waiting = (phase: 'model' | null): void => this.deps.emit({ type: 'waiting', conversationId: conversation.id, phase });
+      let first = true;
+      const arrived = (): void => {
+        if (!first) return;
+        first = false;
+        waiting(null);
+      };
+      waiting('model');
       let result;
       try {
         result = await complete(
           { apiBase: settings.apiBase, apiKey, model: settings.model, messages: request, tools: schemas, maxTokens: settings.maxOutputTokens, signal },
           {
             onContent: (chunk) => {
+              arrived();
               message.content += chunk;
               this.emitMessage(conversation, message);
             },
             onReasoning: (chunk) => {
+              arrived();
               message.reasoning += chunk;
               this.emitMessage(conversation, message);
             },
             onToolCalls: (calls) => {
+              arrived();
               message.toolCalls = calls.map((call) => this.draftCall(call));
               this.emitMessage(conversation, message);
             },
           },
         );
       } catch (error) {
+        arrived();
         this.finishWithError(conversation, message, signal.aborted ? 'Stopped.' : describeError(error as Error));
         return;
       }
+      arrived();
 
       message.content = result.content.trim();
       message.reasoning = result.reasoning.trim();
@@ -193,6 +215,22 @@ export class Runtime {
     if (last?.role === 'assistant') {
       last.error = `Paused after ${maxSteps} steps. Send "continue" to keep going.`;
       this.emitMessage(conversation, last, true);
+    }
+  }
+
+  /** Summarizes the older part of a long chat; a failed summary is not fatal (context trimming still applies). */
+  private async compact(conversation: Conversation, message: AssistantMessage, settings: Settings, apiKey: string, system: string, schemas: ToolSchema[], signal: AbortSignal): Promise<void> {
+    const history = conversation.messages.slice(0, -1);
+    const view: Conversation = { ...conversation, messages: history };
+    const started = (): void => this.deps.emit({ type: 'waiting', conversationId: conversation.id, phase: 'compacting' });
+    try {
+      if (!(await compactIfNeeded(view, settings, apiKey, system, schemas, signal, started))) return;
+      conversation.summary = view.summary;
+      this.deps.save(conversation);
+      this.deps.emit({ type: 'conversation', summary: summarize(conversation) });
+      this.emitMessage(conversation, message, true);
+    } catch {
+      /* keep going with plain trimming */
     }
   }
 
