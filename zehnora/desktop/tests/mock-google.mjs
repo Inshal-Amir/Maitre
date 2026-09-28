@@ -32,7 +32,7 @@ export async function startMockGoogle(port) {
       if (route === 'GET /gmail/v1/users/me/messages') return json(res, 200, { messages: [{ id: 'm1' }] });
       if (route === 'GET /gmail/v1/users/me/messages/m1') {
         const headers = [{ name: 'From', value: 'Ali <ali@example.com>' }, { name: 'To', value: 'tester@gmail.com' }, { name: 'Subject', value: 'Project meeting' }, { name: 'Date', value: 'Fri, 25 Sep 2026 10:00:00 +0500' }];
-        if (url.searchParams.get('format') === 'metadata') return json(res, 200, { id: 'm1', threadId: 't1', snippet: 'Can we meet Monday?', labelIds: ['UNREAD'], payload: { headers } });
+        if (url.searchParams.get('format') === 'metadata') return json(res, 200, { id: 'm1', threadId: 't1', snippet: 'Can we meet Monday? It&#39;s urgent \u034f \u034f', labelIds: ['UNREAD'], payload: { headers } });
         return json(res, 200, { id: 'm1', threadId: 't1', payload: { mimeType: 'multipart/alternative', headers, parts: [{ mimeType: 'text/plain', body: { data: b64('Hi, can we meet Monday at 3?') } }, { mimeType: 'text/html', body: { data: b64('<p>Hi</p>') } }] } });
       }
       if (route === 'POST /gmail/v1/users/me/drafts') return json(res, 200, { id: 'd1' });

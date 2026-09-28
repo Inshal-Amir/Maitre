@@ -115,6 +115,7 @@ describe('built-in Google MCP server', () => {
     const found = await run('google_gmail_search', { query: 'is:unread' });
     expect(found).toContain('id m1');
     expect(found).toContain('Project meeting [unread]');
+    expect(found).toMatch(/Can we meet Monday\? It's urgent$/);
     expect(await run('google_gmail_read', { message_id: 'm1' })).toContain('Hi, can we meet Monday at 3?');
     expect(await run('google_gmail_create_draft', { to: 'ali@example.com', subject: 'Meeting ✓', body: 'Monday works.' })).toContain('Draft created (id d1)');
     const draft = google.log.find((entry) => entry.route === 'POST /gmail/v1/users/me/drafts')!;
