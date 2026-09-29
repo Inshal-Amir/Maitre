@@ -4,6 +4,7 @@ import type { ApprovalRequest, AssistantMessage, Message } from '../../shared/ty
 import { ToolCard } from './ToolCard';
 import { Markdown } from './Markdown';
 import { Icon } from './Icon';
+import { describeAttachment } from './Composer';
 
 type Turn = { kind: 'user'; message: Message; start: number } | { kind: 'assistant'; id: string; steps: AssistantMessage[]; start: number };
 
@@ -120,7 +121,15 @@ export function Thread({ messages, approvals, waiting, compactedAt }: {
             )}
             {turn.kind === 'user' ? (
               <div className="turn user">
-                <div className="bubble">{turn.message.content}</div>
+                <div className="user-stack">
+                  {turn.message.role === 'user' && turn.message.attachments?.map((file) => (
+                    <div key={file.id} className="attachment sent" title={file.path}>
+                      <span className="attachment-icon">{file.kind === 'pdf' ? 'PDF' : file.kind === 'docx' ? 'DOC' : 'TXT'}</span>
+                      <span className="attachment-text"><b>{file.name}</b><small>{describeAttachment(file)}</small></span>
+                    </div>
+                  ))}
+                  <div className="bubble">{turn.message.content}</div>
+                </div>
               </div>
             ) : (
               <div className="turn assistant">

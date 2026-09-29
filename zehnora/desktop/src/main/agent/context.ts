@@ -1,5 +1,5 @@
 import type { ApiMessage, ToolSchema } from '../llm';
-import type { Message, ToolCall } from '../../shared/types';
+import type { Message, Mode, ToolCall, UserMessage } from '../../shared/types';
 
 const CHARS_PER_TOKEN = 3.2;
 const RECENT_TOOL_RESULTS = 8;
@@ -14,14 +14,32 @@ function toolResultText(call: ToolCall): string {
   return call.result ?? '(no result)';
 }
 
+const INLINE_CHARS = 60_000;
+
+/** A user message as the model sees it: the text plus the extracted content of attached files (shared inline budget). */
+export function userContent(message: UserMessage, mode: Mode): string {
+  if (!message.attachments?.length) return message.content;
+  let left = INLINE_CHARS;
+  const blocks = message.attachments.map((file) => {
+    const text = file.text ?? '';
+    const shown = text.slice(0, Math.max(0, left));
+    left -= shown.length;
+    const meta = `${file.name}${file.pages ? `, ${file.pages} pages` : ''}, ${file.chars.toLocaleString('en')} characters, saved at ${file.path}`;
+    const cut = shown.length < text.length || file.truncated;
+    const more = !cut ? '' : mode === 'work' ? `\n[… only the first ${shown.length.toLocaleString('en')} characters are shown here; read the rest with read_file on ${file.path} using offset/limit]` : `\n[… only the first ${shown.length.toLocaleString('en')} characters are shown; the rest was left out to fit the model's memory]`;
+    return `<attached_file name="${file.name}">\n(${meta})\n${shown}${more}\n</attached_file>`;
+  });
+  return `${message.content}\n\n${blocks.join('\n\n')}`;
+}
+
 /** One user turn, or one assistant step with its tool results; groups are dropped whole so tool results stay paired. */
 type Group = ApiMessage[];
 
-function toGroups(messages: Message[]): Group[] {
+function toGroups(messages: Message[], mode: Mode): Group[] {
   const groups: Group[] = [];
   for (const message of messages) {
     if (message.role === 'user') {
-      groups.push([{ role: 'user', content: message.content }]);
+      groups.push([{ role: 'user', content: userContent(message, mode) }]);
       continue;
     }
     const calls = message.toolCalls.filter((call) => call.status !== 'pending');
@@ -61,9 +79,9 @@ function shrinkOldToolResults(groups: Group[]): void {
  * Builds the request messages within the context budget: first older tool outputs are shortened,
  * then the oldest turns are dropped (the first user message is kept for the task statement).
  */
-export function buildMessages(system: string, messages: Message[], tools: ToolSchema[], contextTokens: number, maxOutputTokens: number, summary?: { text: string; upTo: number }): ApiMessage[] {
+export function buildMessages(system: string, messages: Message[], tools: ToolSchema[], contextTokens: number, maxOutputTokens: number, summary?: { text: string; upTo: number }, mode: Mode = 'chat'): ApiMessage[] {
   const budget = contextTokens - maxOutputTokens - estimateTokens(system) - estimateTokens(JSON.stringify(tools));
-  const groups = toGroups(summary ? messages.slice(summary.upTo) : messages);
+  const groups = toGroups(summary ? messages.slice(summary.upTo) : messages, mode);
   if (summary) groups.unshift([{ role: 'user', content: `[Summary of the earlier part of this conversation, written to save space]\n${summary.text}` }]);
   const total = (): number => groups.reduce((sum, group) => sum + group.reduce((s, m) => s + sizeOf(m), 0), 0);
   if (total() > budget) shrinkOldToolResults(groups);

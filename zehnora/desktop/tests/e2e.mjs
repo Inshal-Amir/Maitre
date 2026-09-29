@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startMockModel } from './mock-model.mjs';
+import { makePdf } from './fixtures/make-pdf.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const desktop = path.resolve(here, '..');
@@ -127,6 +128,18 @@ try {
   await page.waitForFunction((f) => true, file);
   await lastAssistant(page).locator('.tool-done:has-text("rm -rf hello")').waitFor({ timeout: 15_000 });
   check('approved command runs', !fs.existsSync(file));
+
+  const pdf = makePdf(path.join(workDir, 'report.pdf'), ['Quarterly report for Zehnora', 'Revenue grew 40 percent']);
+  await app.evaluate(({ dialog }, file) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] }); }, pdf);
+  await page.click('button.attach');
+  await page.waitForSelector('.attachments .attachment:has-text("report.pdf")', { timeout: 15_000 });
+  check('paperclip attaches a PDF and shows its pages', /PDF · 2 pages/.test(await page.innerText('.attachments')));
+  await page.screenshot({ path: path.join(evidence, '11-attachment.png') });
+  await send(page, 'summarize the attached report');
+  await page.locator('.turn.assistant .markdown:has-text("summarize the attached report")').waitFor({ timeout: 15_000 });
+  const sentText = mock.requests[mock.requests.length - 1].messages.filter((m) => m.role === 'user').pop()?.content ?? '';
+  check('PDF text reaches the model with the message', /Revenue grew 40 percent/.test(sentText) && /attached_file name="report.pdf"/.test(sentText));
+  check('sent message shows the file chip', await page.locator('.turn.user .attachment.sent:has-text("report.pdf")').waitFor({ timeout: 5000 }).then(() => true, () => false));
 
   await page.click('.status');
   await page.waitForSelector('.dialog');

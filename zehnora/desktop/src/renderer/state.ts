@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AccountStatus, ApprovalRequest, ConnectorStatus, Memory, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, ZehnoraApi } from '../shared/types';
+import type { AccountStatus, ApprovalRequest, Attachment, ConnectorStatus, Memory, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, ZehnoraApi } from '../shared/types';
 
 declare global {
   interface Window {
@@ -49,7 +49,7 @@ export interface AppState {
   setMode(mode: Mode): void;
   open(id: string): Promise<void>;
   newChat(mode?: Mode): Promise<void>;
-  send(text: string): Promise<void>;
+  send(text: string, attachments?: Attachment[]): Promise<void>;
   stop(): void;
   remove(id: string): Promise<void>;
   rename(id: string, title: string): Promise<void>;
@@ -153,13 +153,13 @@ export function useAppState(): AppState {
     setActive(conversation);
   }, [mode]);
 
-  const send = useCallback(async (text: string) => {
+  const send = useCallback(async (text: string, attachments: Attachment[] = []) => {
     let conversation = active;
     if (!conversation) {
       conversation = await api().createConversation(mode);
       setActive(conversation);
     }
-    await api().send(conversation.id, text);
+    await api().send(conversation.id, text, attachments.map((file) => file.id));
   }, [active, mode]);
 
   const stop = useCallback(() => {

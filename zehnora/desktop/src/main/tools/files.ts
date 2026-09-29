@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { shell } from 'electron';
+import { extractDocument, isDocumentPath } from '../documents';
 import type { Risk } from '../../shared/types';
 import type { Args, Assessment, Tool, ToolContext } from './types';
 import { isInside, isSensitivePath, resolvePath } from './policy';
@@ -149,7 +150,7 @@ function matcher(pattern: string): (relative: string) => boolean {
 
 const readFile: Tool = {
   name: 'read_file',
-  description: 'Read a text file. Paths may be absolute, ~/…, or relative to the working folder. Use offset/limit (line numbers, 1-based) for large files.',
+  description: 'Read a text file, or the text of a PDF or Word .docx. Paths may be absolute, ~/…, or relative to the working folder. Use offset/limit (line numbers, 1-based) for large files.',
   parameters: {
     type: 'object',
     properties: {
@@ -165,9 +166,15 @@ const readFile: Tool = {
     const file = target(args, 'path', context);
     const stat = fs.statSync(file);
     if (stat.isDirectory()) throw new ToolError(`${file} is a folder; use list_directory.`);
-    const buffer = fs.readFileSync(file);
-    if (isBinary(buffer)) return `${file} is a binary file (${formatSize(stat.size)}); it cannot be shown as text.`;
-    const lines = buffer.toString('utf8').split('\n');
+    let raw: string;
+    if (isDocumentPath(file)) {
+      raw = (await extractDocument(file)).text;
+    } else {
+      const buffer = fs.readFileSync(file);
+      if (isBinary(buffer)) return `${file} is a binary file (${formatSize(stat.size)}); it cannot be shown as text.`;
+      raw = buffer.toString('utf8');
+    }
+    const lines = raw.split('\n');
     const offset = optInt(args, 'offset', 1, 1, Math.max(1, lines.length));
     const limit = optInt(args, 'limit', 800, 1, 5000);
     const slice = lines.slice(offset - 1, offset - 1 + limit).join('\n');

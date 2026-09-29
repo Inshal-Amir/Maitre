@@ -6,9 +6,9 @@ Thank you for testing Zehnora. The app talks to the Zehnora model running on our
 
 | Computer | File |
 |---|---|
-| Windows 10/11 | `Zehnora-Setup-0.3.0.exe` |
-| Mac with Apple Silicon (M1–M4) | `Zehnora-0.3.0-mac-arm64.dmg` |
-| Mac with Intel | `Zehnora-0.3.0-mac-x64.dmg` |
+| Windows 10/11 | `Zehnora-Setup-0.3.1.exe` |
+| Mac with Apple Silicon (M1–M4) | `Zehnora-0.3.1-mac-arm64.dmg` |
+| Mac with Intel | `Zehnora-0.3.1-mac-x64.dmg` |
 
 The app is not yet signed by Apple/Microsoft, so the system warns once:
 - **Windows:** "Windows protected your PC" → **More info** → **Run anyway**.
@@ -20,7 +20,8 @@ The app is not yet signed by Apple/Microsoft, so the system warns once:
 2. **Chat** (left switch): normal questions, web search, GitHub search.
 3. **Work**: Zehnora does tasks on your computer, e.g. "Create a React app called todo-app and run it", "Set up PostgreSQL in Docker", "Check which developer tools I have". Work tasks use your default folder `~/Zehnora` (change it with the folder button at the top right).
 
-4. **Google (optional):** Settings (gear, bottom left) → Connected apps → choose Gmail / Calendar / Drive / Docs / Sheets → **Connect Google**, sign in in your browser (Google may say the app is not verified yet: click **Continue**). Then ask e.g. "Summarize my unread emails" or "What's on my calendar this week?". Sending email or deleting events always asks you first.
+4. **Attach files:** click the paperclip or drag files onto the window: PDF (with a text layer), Word .docx, text, Markdown, CSV, JSON and code. Zehnora reads the text; images and scanned PDFs are not supported yet.
+5. **Google (optional):** Settings (gear, bottom left) → Connected apps → choose Gmail / Calendar / Drive / Docs / Sheets → **Connect Google**, sign in in your browser (Google may say the app is not verified yet: click **Continue**). Then ask e.g. "Summarize my unread emails" or "What's on my calendar this week?". Sending email or deleting events always asks you first.
 
 Risky actions (deleting, `git push`, `sudo`, installing system software, changes outside the working folder) always show **Allow / Deny** first. Deleted files go to the Trash / Recycle Bin.
 

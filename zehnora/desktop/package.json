@@ -1,7 +1,7 @@
 {
   "name": "zehnora-desktop",
   "productName": "Zehnora",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Zehnora Desktop: Chat and Work agent app connected to the Zehnora model API",
   "main": "dist/main/index.js",
@@ -26,11 +26,13 @@
     "electron-builder": "26.15.3",
     "esbuild": "^0.28.2",
     "highlight.js": "^11.12.0",
+    "mammoth": "^1.13.0",
     "marked": "^18.0.14",
     "playwright-core": "^1.58.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "typescript": "^7.0.2",
+    "unpdf": "^1.8.1",
     "vite": "^8.3.1",
     "vitest": "^5.0.2",
     "zod": "^4.6.5"

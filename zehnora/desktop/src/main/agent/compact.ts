@@ -10,13 +10,13 @@ const SUMMARY_TOKENS = 3000;
 
 const messageTokens = (message: Message): number =>
   message.role === 'user'
-    ? estimateTokens(message.content) + 4
+    ? estimateTokens(message.content) + Math.min(60_000, (message.attachments ?? []).reduce((sum, file) => sum + (file.text?.length ?? 0), 0)) / 3.2 + 4
     : estimateTokens(message.content) + message.toolCalls.reduce((sum, call) => sum + estimateTokens(call.arguments) + estimateTokens(call.result ?? '') + 12, 4);
 
 function transcript(messages: Message[]): string {
   return messages
     .map((message) => {
-      if (message.role === 'user') return `USER: ${message.content}`;
+      if (message.role === 'user') return `USER: ${message.content}${message.attachments?.length ? ` [attached: ${message.attachments.map((file) => file.name).join(', ')}; first lines: ${(message.attachments[0].text ?? '').slice(0, 1500).replace(/\s+/g, ' ')}]` : ''}`;
       const calls = message.toolCalls.map((call) => `  → ${call.name}(${call.arguments.slice(0, 200)}) [${call.status}]: ${(call.result ?? '').slice(0, TOOL_RESULT_CHARS).replace(/\s+/g, ' ')}`);
       return [message.content ? `ASSISTANT: ${message.content}` : 'ASSISTANT (tools):', ...calls].join('\n');
     })

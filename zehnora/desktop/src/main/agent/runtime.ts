@@ -1,7 +1,7 @@
 import os from 'node:os';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import type { AgentEvent, AssistantMessage, Conversation, Settings, ToolCall, UserMessage } from '../../shared/types';
+import type { AgentEvent, AssistantMessage, Attachment, Conversation, Settings, ToolCall, UserMessage } from '../../shared/types';
 import type { ApiToolCall, ToolSchema } from '../llm';
 import type { Args, Tool, ToolContext } from '../tools/types';
 import { Approvals, needsApproval } from './approvals';
@@ -105,11 +105,11 @@ export class Runtime {
     else this.pendingEmit.set(key, setTimeout(flush, wait));
   }
 
-  async send(conversation: Conversation, text: string): Promise<void> {
+  async send(conversation: Conversation, text: string, attachments: Attachment[] = []): Promise<void> {
     if (this.runs.has(conversation.id)) throw new Error('This chat is still working. Stop it or wait for it to finish.');
-    const user: UserMessage = { id: newId(), role: 'user', content: text, createdAt: Date.now() };
+    const user: UserMessage = { id: newId(), role: 'user', content: text, createdAt: Date.now(), ...(attachments.length ? { attachments } : {}) };
     conversation.messages.push(user);
-    if (conversation.title === 'New chat') conversation.title = titleFrom(text);
+    if (conversation.title === 'New chat') conversation.title = titleFrom(attachments.length && text.startsWith('Please look at') ? attachments[0].name : text);
     this.deps.save(conversation);
     this.emitMessage(conversation, user, true);
     this.deps.emit({ type: 'conversation', summary: summarize(conversation) });
@@ -151,7 +151,7 @@ export class Runtime {
         this.finishWithError(conversation, message, 'Stopped.');
         return;
       }
-      const request = buildMessages(system, conversation.messages.slice(0, -1), schemas, settings.contextTokens, settings.maxOutputTokens, conversation.summary);
+      const request = buildMessages(system, conversation.messages.slice(0, -1), schemas, settings.contextTokens, settings.maxOutputTokens, conversation.summary, conversation.mode);
       const waiting = (phase: 'model' | null): void => this.deps.emit({ type: 'waiting', conversationId: conversation.id, phase });
       let first = true;
       const arrived = (): void => {

@@ -1,7 +1,8 @@
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, powerSaveBlocker, session, shell } from 'electron';
-import type { AgentEvent, ApprovalDecision, Conversation, GoogleService, McpServerConfig, Mode, ModelStatus, SettingsPatch } from '../shared/types';
+import type { AgentEvent, ApprovalDecision, Attachment, AttachmentResult, Conversation, GoogleService, McpServerConfig, Mode, ModelStatus, SettingsPatch } from '../shared/types';
 import { initShellEnvironment, listProcesses, setExtraEnv, stopAllProcesses, stopProcess, watchProcesses } from './tools/shell';
 import { getSettings, readSecret, saveSettings } from './settings';
 import { configureBackups } from './tools/files';
@@ -10,6 +11,7 @@ import { Connectors } from './mcp/connectors';
 import { Runtime } from './agent/runtime';
 import { checkModel } from './llm';
 import * as account from './account';
+import { extractDocument } from './documents';
 import { clearMemories, deleteMemory, listMemories, watchMemories } from './memory';
 import * as store from './store';
 
@@ -54,6 +56,38 @@ function recoverInterrupted(conversation: Conversation): Conversation {
     }
   }
   return conversation;
+}
+
+const pendingAttachments = new Map<string, Attachment>();
+
+async function addAttachments(paths: string[]): Promise<AttachmentResult[]> {
+  let chosen = paths;
+  if (!chosen.length && mainWindow) {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Attach files',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'Documents and text', extensions: ['pdf', 'docx', 'txt', 'md', 'csv', 'json', 'html', 'xml', 'yaml', 'yml', 'log', 'py', 'js', 'ts', 'tsx', 'jsx', 'java', 'c', 'cpp', 'cs', 'go', 'rs', 'php', 'rb', 'sql', 'sh', 'ps1'] },
+        { name: 'All files', extensions: ['*'] },
+      ],
+    });
+    chosen = result.canceled ? [] : result.filePaths;
+  }
+  return Promise.all(chosen.slice(0, 10).map(async (file): Promise<AttachmentResult> => {
+    const name = path.basename(file);
+    try {
+      const extracted = await extractDocument(file);
+      const attachment: Attachment = {
+        id: crypto.randomUUID(), name, path: file, size: fs.statSync(file).size, kind: extracted.kind,
+        pages: extracted.pages, chars: extracted.text.length, truncated: extracted.truncated, text: extracted.text,
+      };
+      pendingAttachments.set(attachment.id, attachment);
+      const { text: _text, ...visible } = attachment;
+      return visible;
+    } catch (error) {
+      return { name, error: (error as Error).message };
+    }
+  }));
 }
 
 function requireConversation(id: string): Conversation {
@@ -113,11 +147,14 @@ function registerIpc(): void {
     emit({ type: 'conversation', summary: store.summarize(conversation) });
     return dir;
   });
-  handle('agent:send', (id: string, text: string) => {
+  handle('attachments:add', (paths: string[]) => addAttachments(paths));
+  handle('agent:send', (id: string, text: string, attachmentIds: string[]) => {
     const conversation = requireConversation(id);
-    const trimmed = text.trim();
+    const attachments = attachmentIds.map((attachmentId) => pendingAttachments.get(attachmentId)).filter((entry): entry is Attachment => Boolean(entry));
+    attachmentIds.forEach((attachmentId) => pendingAttachments.delete(attachmentId));
+    const trimmed = text.trim() || (attachments.length ? 'Please look at the attached file(s).' : '');
     if (!trimmed) return;
-    runtime.send(conversation, trimmed).catch((error: Error) => console.error('[zehnora] run failed', error));
+    runtime.send(conversation, trimmed, attachments).catch((error: Error) => console.error('[zehnora] run failed', error));
   });
   handle('agent:stop', (id: string) => runtime.stop(id));
   handle('agent:decide', (id: string, decision: ApprovalDecision) => runtime.approvals.decide(id, decision));

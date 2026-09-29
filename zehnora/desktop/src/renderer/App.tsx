@@ -44,6 +44,8 @@ export function App(): ReactElement {
   const state = useAppState();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [seed, setSeed] = useState<{ text: string; nonce: number } | null>(null);
+  const [dropped, setDropped] = useState<{ paths: string[]; nonce: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const { active, mode } = state;
   const running = active ? state.running.has(active.id) : false;
   const hasMessages = Boolean(active?.messages.length);
@@ -66,7 +68,19 @@ export function App(): ReactElement {
         onRename={state.rename}
         onSettings={() => setSettingsOpen(true)}
       />
-      <main className="main">
+      <main
+        className="main"
+        onDragEnter={(event) => { if (!needsAccount && event.dataTransfer.types.includes('Files')) setDragging(true); }}
+        onDragOver={(event) => event.preventDefault()}
+        onDragLeave={(event) => { if (event.currentTarget === event.target) setDragging(false); }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragging(false);
+          const paths = [...event.dataTransfer.files].map((file) => api().pathForFile(file)).filter(Boolean);
+          if (paths.length && !needsAccount) setDropped({ paths, nonce: Date.now() });
+        }}
+      >
+        {dragging && <div className="drop-overlay" onDragLeave={() => setDragging(false)}>Drop files to attach (PDF, Word, text, code)</div>}
         <header className="topbar drag">
           <div className="topbar-title">{hasMessages ? active?.title : mode === 'chat' ? 'Chat' : 'Work'}</div>
           <div className="topbar-actions no-drag">
@@ -88,7 +102,7 @@ export function App(): ReactElement {
         ) : (
           <Welcome mode={mode} onPick={(text) => setSeed({ text, nonce: Date.now() })} />
         )}
-        {!needsAccount && <Composer mode={mode} running={running} disabled={false} onSend={state.send} onStop={state.stop} seed={seed} />}
+        {!needsAccount && <Composer mode={mode} running={running} disabled={false} onSend={state.send} onStop={state.stop} seed={seed} dropped={dropped} />}
       </main>
       {settingsOpen && state.settings && <Settings settings={state.settings} status={state.status} account={state.account} connectors={state.connectors} memories={state.memories} onSignOut={state.signOut} onSave={state.saveSettings} onClose={closeSettings} />}
     </div>

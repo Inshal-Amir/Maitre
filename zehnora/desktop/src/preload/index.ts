@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { AgentEvent, ZehnoraApi } from '../shared/types';
 
 const api: ZehnoraApi = {
@@ -8,7 +8,9 @@ const api: ZehnoraApi = {
   deleteConversation: (id) => ipcRenderer.invoke('conversations:delete', id),
   renameConversation: (id, title) => ipcRenderer.invoke('conversations:rename', id, title),
   setWorkDir: (id) => ipcRenderer.invoke('conversations:set-cwd', id),
-  send: (id, text) => ipcRenderer.invoke('agent:send', id, text),
+  send: (id, text, attachmentIds) => ipcRenderer.invoke('agent:send', id, text, attachmentIds ?? []),
+  attachFiles: (paths) => ipcRenderer.invoke('attachments:add', paths ?? []),
+  pathForFile: (file) => webUtils.getPathForFile(file),
   stop: (id) => ipcRenderer.invoke('agent:stop', id),
   decide: (id, decision) => ipcRenderer.invoke('agent:decide', id, decision),
   getSettings: () => ipcRenderer.invoke('settings:get'),

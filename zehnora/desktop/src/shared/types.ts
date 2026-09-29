@@ -18,11 +18,29 @@ export interface ToolCall {
   endedAt?: number;
 }
 
+export type AttachmentKind = 'pdf' | 'docx' | 'text';
+
+export interface Attachment {
+  id: string;
+  name: string;
+  path: string;
+  size: number;
+  kind: AttachmentKind;
+  pages?: number;
+  chars: number;
+  truncated: boolean;
+  /** Extracted text; kept in the main process and the saved conversation. */
+  text?: string;
+}
+
+export type AttachmentResult = Attachment | { name: string; error: string };
+
 export interface UserMessage {
   id: string;
   role: 'user';
   content: string;
   createdAt: number;
+  attachments?: Attachment[];
 }
 
 export interface AssistantMessage {
@@ -175,7 +193,9 @@ export interface ZehnoraApi {
   deleteConversation(id: string): Promise<void>;
   renameConversation(id: string, title: string): Promise<void>;
   setWorkDir(id: string): Promise<string | null>;
-  send(id: string, text: string): Promise<void>;
+  send(id: string, text: string, attachmentIds?: string[]): Promise<void>;
+  attachFiles(paths?: string[]): Promise<AttachmentResult[]>;
+  pathForFile(file: File): string;
   stop(id: string): Promise<void>;
   decide(approvalId: string, decision: ApprovalDecision): Promise<void>;
   getSettings(): Promise<Settings>;
