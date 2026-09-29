@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AccountStatus, ApprovalRequest, Attachment, ConnectorStatus, Memory, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, ZehnoraApi } from '../shared/types';
+import type { AccountStatus, ApprovalRequest, Attachment, ConnectorStatus, Memory, QuestionRequest, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, ZehnoraApi } from '../shared/types';
 
 declare global {
   interface Window {
@@ -38,6 +38,7 @@ export interface AppState {
   active: Conversation | null;
   running: Set<string>;
   approvals: ApprovalRequest[];
+  questions: QuestionRequest[];
   processes: ProcessInfo[];
   settings: Settings | null;
   status: ModelStatus | null;
@@ -64,6 +65,7 @@ export function useAppState(): AppState {
   const [active, setActive] = useState<Conversation | null>(null);
   const [running, setRunning] = useState<Set<string>>(new Set());
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [questions, setQuestions] = useState<QuestionRequest[]>([]);
   const [processes, setProcesses] = useState<ProcessInfo[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<ModelStatus | null>(null);
@@ -109,6 +111,10 @@ export function useAppState(): AppState {
         setApprovals((list) => [...list, event.request]);
       } else if (event.type === 'approval-resolved') {
         setApprovals((list) => list.filter((request) => request.id !== event.id));
+      } else if (event.type === 'question') {
+        setQuestions((list) => [...list, event.request]);
+      } else if (event.type === 'question-resolved') {
+        setQuestions((list) => list.filter((request) => request.id !== event.id));
       } else if (event.type === 'processes') {
         setProcesses(event.processes);
       } else if (event.type === 'memories') {
@@ -194,5 +200,5 @@ export function useAppState(): AppState {
 
   const visible = useMemo(() => conversations.filter((entry) => entry.mode === mode && entry.title !== 'New chat'), [conversations, mode]);
 
-  return { mode, conversations: visible, active, running, approvals, processes, settings, status, account, connectors, memories, waiting, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, saveSettings, refreshStatus };
+  return { mode, conversations: visible, active, running, approvals, questions, processes, settings, status, account, connectors, memories, waiting, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, saveSettings, refreshStatus };
 }

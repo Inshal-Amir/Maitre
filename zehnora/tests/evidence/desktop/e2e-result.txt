@@ -19,6 +19,9 @@ PASS risky command shows an inline approval
 PASS denied command did not run
 PASS model is told about the denial
 PASS approved command runs
+PASS agent asks questions with clickable options first
+PASS answers go back to the agent
+PASS plan checklist is shown with progress
 PASS paperclip attaches a PDF and shows its pages
 PASS PDF text reaches the model with the message
 PASS sent message shows the file chip
@@ -28,4 +31,4 @@ PASS connected apps list Google with its services
 PASS custom MCP server added from settings connects (3 tools)
 PASS agent uses the MCP tool in Chat mode
 PASS conversations are saved to disk
-30/30 passed on darwin 2026-09-29T06:51:52.762Z
+33/33 passed on darwin 2026-09-29T14:43:38.874Z

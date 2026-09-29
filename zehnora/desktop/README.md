@@ -21,6 +21,14 @@ First launch shows **Create account / Sign in**. The app calls the portal API (`
 
 Git, GitHub (`gh`), Docker, databases and package managers are used through `run_command` / `start_process` with the user's login-shell `PATH`.
 
+## Work agent workflow
+
+1. **Understand**: `ask_user` shows a form with clickable options (the run waits for the answers).
+2. **Workspace**: the first questions always include where to create the project (proposed path + Browse…); `set_project` switches the task to that folder and creates `.zehnora/`.
+3. **Plan**: `update_brief` writes `.zehnora/brief.md`; `update_plan` keeps a checklist (shown above the thread, saved to `.zehnora/plan.md`).
+4. **Research**: official starters, GitHub (`github_search`, `github_repo`, `github_read_file`, clone and adapt), current docs (`web_search`, `fetch_url`); decisions go to `.zehnora/notes.md` with `add_note`.
+5. **Build and verify** step by step; brief, plan and notes are put into the system prompt on every step, so long chats do not lose the goal.
+
 ## Agent runtime (`src/main/agent`)
 
 `runtime.ts` loop: build messages within the context budget (`context.ts`: shorten old tool output first, then drop oldest steps, keep the task) → stream `/chat/completions` with tool schemas (`llm.ts`: SSE, `reasoning_content` or `<think>` tags, tool-call deltas, retry only before any output) → run each tool call → feed results back → repeat until the model answers without tools. Stop cancels the stream and kills the running process tree. Identical failing calls are refused after two failures.

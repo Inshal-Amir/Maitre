@@ -6,8 +6,9 @@ import { systemTools } from './system';
 import { fileTools } from './files';
 import { webTools } from './web';
 import { memoryTools } from '../memory';
+import { agentTools } from './agent';
 
-const ALL: Tool[] = [...fileTools, ...commandTools, ...webTools, ...systemTools, ...memoryTools];
+const ALL: Tool[] = [...agentTools, ...fileTools, ...commandTools, ...webTools, ...systemTools, ...memoryTools];
 
 const byMode: Record<Mode, Map<string, Tool>> = {
   chat: new Map(ALL.filter((tool) => tool.modes.includes('chat')).map((tool) => [tool.name, tool])),

@@ -52,7 +52,7 @@ function recoverInterrupted(conversation: Conversation): Conversation {
       message.error ??= 'Interrupted when the app closed.';
     }
     for (const call of message.toolCalls) {
-      if (call.status === 'running' || call.status === 'pending' || call.status === 'awaiting-approval') call.status = 'cancelled';
+      if (call.status === 'running' || call.status === 'pending' || call.status === 'awaiting-approval' || call.status === 'awaiting-input') call.status = 'cancelled';
     }
   }
   return conversation;
@@ -158,6 +158,7 @@ function registerIpc(): void {
   });
   handle('agent:stop', (id: string) => runtime.stop(id));
   handle('agent:decide', (id: string, decision: ApprovalDecision) => runtime.approvals.decide(id, decision));
+  handle('agent:answer', (id: string, answers: string[]) => runtime.questions.answer(id, answers));
   handle('settings:get', () => getSettings());
   handle('settings:save', (patch: SettingsPatch) => {
     const next = saveSettings(patch);

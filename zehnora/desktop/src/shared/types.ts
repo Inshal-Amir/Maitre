@@ -4,7 +4,7 @@ export type ApprovalPolicy = 'risky' | 'writes' | 'never';
 
 export type Risk = 'safe' | 'normal' | 'risky';
 
-export type ToolStatus = 'pending' | 'awaiting-approval' | 'running' | 'done' | 'error' | 'denied' | 'cancelled';
+export type ToolStatus = 'pending' | 'awaiting-approval' | 'awaiting-input' | 'running' | 'done' | 'error' | 'denied' | 'cancelled';
 
 export interface ToolCall {
   id: string;
@@ -62,6 +62,33 @@ export interface Usage {
   completionTokens: number;
 }
 
+export type PlanStatus = 'pending' | 'in_progress' | 'completed';
+
+export interface PlanStep {
+  title: string;
+  status: PlanStatus;
+}
+
+export interface Plan {
+  goal: string;
+  steps: PlanStep[];
+  updatedAt: number;
+}
+
+export interface Question {
+  question: string;
+  options?: string[];
+  multiple?: boolean;
+}
+
+export interface QuestionRequest {
+  id: string;
+  conversationId: string;
+  toolCallId: string;
+  title: string;
+  questions: Question[];
+}
+
 export interface ConversationSummary {
   id: string;
   mode: Mode;
@@ -69,6 +96,7 @@ export interface ConversationSummary {
   cwd?: string;
   /** Messages before this index were summarized to fit the context window. */
   compactedAt?: number;
+  plan?: Plan;
   createdAt: number;
   updatedAt: number;
 }
@@ -179,6 +207,8 @@ export type AgentEvent =
   | { type: 'message'; conversationId: string; message: Message }
   | { type: 'approval'; request: ApprovalRequest }
   | { type: 'approval-resolved'; id: string }
+  | { type: 'question'; request: QuestionRequest }
+  | { type: 'question-resolved'; id: string }
   | { type: 'run-state'; conversationId: string; running: boolean }
   | { type: 'conversation'; summary: ConversationSummary }
   | { type: 'processes'; processes: ProcessInfo[] }
@@ -198,6 +228,7 @@ export interface ZehnoraApi {
   pathForFile(file: File): string;
   stop(id: string): Promise<void>;
   decide(approvalId: string, decision: ApprovalDecision): Promise<void>;
+  answer(questionId: string, answers: string[]): Promise<void>;
   getSettings(): Promise<Settings>;
   saveSettings(patch: SettingsPatch): Promise<Settings>;
   chooseDirectory(current?: string): Promise<string | null>;

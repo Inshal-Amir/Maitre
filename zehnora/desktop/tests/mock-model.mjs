@@ -13,6 +13,9 @@ export function scenario(body) {
   const messages = body.messages;
   const last = messages[messages.length - 1];
   const task = lastUser(messages);
+  if (last.role === 'tool' && /build a website/i.test(task) && /^Q: /.test(last.content)) {
+    return { tool_calls: [{ name: 'update_plan', arguments: JSON.stringify({ goal: 'A portfolio website', steps: [{ title: 'Scaffold the project', status: 'in_progress' }, { title: 'Build the pages', status: 'pending' }, { title: 'Check it in the browser', status: 'pending' }] }) }] };
+  }
   if (last.role === 'tool') {
     const results = messages.filter((m) => m.role === 'tool').map((m) => m.content);
     return { content: `Done. Tool said: ${results[results.length - 1].split('\n')[0]}` };
@@ -22,6 +25,9 @@ export function scenario(body) {
   }
   if (/delete hello/i.test(task)) {
     return { tool_calls: [{ name: 'run_command', arguments: JSON.stringify({ command: 'rm -rf hello', reason: 'remove the test folder' }) }] };
+  }
+  if (/build a website/i.test(task)) {
+    return { tool_calls: [{ name: 'ask_user', arguments: JSON.stringify({ title: 'A few details about your website', questions: [{ question: 'What is it for?', options: ['Portfolio', 'Business', 'Blog'] }, { question: 'Which style?', options: ['Minimal', 'Colorful'] }] }) }] };
   }
   if (/save a note/i.test(task)) {
     return { tool_calls: [{ name: 'my_notes_add_note', arguments: JSON.stringify({ text: 'call Ali' }) }] };

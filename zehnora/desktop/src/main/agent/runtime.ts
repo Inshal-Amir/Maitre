@@ -3,8 +3,10 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import type { AgentEvent, AssistantMessage, Attachment, Conversation, Settings, ToolCall, UserMessage } from '../../shared/types';
 import type { ApiToolCall, ToolSchema } from '../llm';
-import type { Args, Tool, ToolContext } from '../tools/types';
+import type { AgentHooks, Args, Tool, ToolContext } from '../tools/types';
 import { Approvals, needsApproval } from './approvals';
+import { Questions } from './questions';
+import { projectMemory } from './project';
 import { toolsFor, schemasFor, toSchema } from '../tools';
 import { ToolError } from '../tools/types';
 import { buildMessages } from './context';
@@ -59,12 +61,14 @@ function describeError(error: Error): string {
 
 export class Runtime {
   readonly approvals: Approvals;
+  readonly questions: Questions;
   private readonly runs = new Map<string, AbortController>();
   private readonly lastEmit = new Map<string, number>();
   private readonly pendingEmit = new Map<string, NodeJS.Timeout>();
 
   constructor(private readonly deps: RuntimeDeps) {
     this.approvals = new Approvals(deps.emit);
+    this.questions = new Questions(deps.emit);
   }
 
   isRunning(conversationId: string): boolean {
@@ -145,7 +149,8 @@ export class Runtime {
       }
 
       const cwd = this.workDir(conversation);
-      const system = systemPrompt(conversation.mode, cwd, this.deps.connectedApps?.() ?? []);
+      const memory = conversation.mode === 'work' ? projectMemory(cwd, conversation.plan) : '';
+      const system = systemPrompt(conversation.mode, cwd, this.deps.connectedApps?.() ?? [], memory, settings.defaultWorkDir);
       await this.compact(conversation, message, settings, apiKey, system, schemas, signal);
       if (signal.aborted) {
         this.finishWithError(conversation, message, 'Stopped.');
@@ -199,12 +204,14 @@ export class Runtime {
       this.deps.save(conversation);
 
       if (!message.toolCalls.length) return;
+      const context: ToolContext = { conversationId: conversation.id, mode: conversation.mode, cwd, signal };
       for (const call of message.toolCalls) {
         if (signal.aborted) {
           call.status = 'cancelled';
           continue;
         }
-        await this.execute(conversation, message, call, tools, failures, { conversationId: conversation.id, mode: conversation.mode, cwd, signal });
+        context.agent = this.hooks(conversation, message, call, context);
+        await this.execute(conversation, message, call, tools, failures, context);
       }
       this.emitMessage(conversation, message, true);
       this.deps.save(conversation);
@@ -232,6 +239,34 @@ export class Runtime {
     } catch {
       /* keep going with plain trimming */
     }
+  }
+
+  /** Lets agent tools ask the user, move the task to its project folder and keep the plan; changes are saved and pushed to the UI. */
+  private hooks(conversation: Conversation, message: AssistantMessage, call: ToolCall, context: ToolContext): AgentHooks {
+    const publish = (): void => {
+      this.deps.save(conversation);
+      this.deps.emit({ type: 'conversation', summary: summarize(conversation) });
+    };
+    return {
+      ask: async (title, questions) => {
+        call.status = 'awaiting-input';
+        this.emitMessage(conversation, message, true);
+        const answers = await this.questions.ask({ conversationId: conversation.id, toolCallId: call.id, title, questions }, context.signal);
+        call.status = 'running';
+        this.emitMessage(conversation, message, true);
+        return answers;
+      },
+      setProject: (dir) => {
+        conversation.cwd = dir;
+        context.cwd = dir;
+        publish();
+      },
+      getPlan: () => conversation.plan,
+      setPlan: (plan) => {
+        conversation.plan = plan;
+        publish();
+      },
+    };
   }
 
   private draftCall(call: ApiToolCall): ToolCall {

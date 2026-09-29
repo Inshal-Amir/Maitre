@@ -13,6 +13,7 @@ const api: ZehnoraApi = {
   pathForFile: (file) => webUtils.getPathForFile(file),
   stop: (id) => ipcRenderer.invoke('agent:stop', id),
   decide: (id, decision) => ipcRenderer.invoke('agent:decide', id, decision),
+  answer: (id, answers) => ipcRenderer.invoke('agent:answer', id, answers),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (patch) => ipcRenderer.invoke('settings:save', patch),
   chooseDirectory: (current) => ipcRenderer.invoke('dialog:directory', current),

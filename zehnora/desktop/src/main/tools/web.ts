@@ -297,4 +297,30 @@ const githubRepoTool: Tool = {
   },
 };
 
-export const webTools: Tool[] = [webSearchTool, fetchUrlTool, githubSearchTool, githubRepoTool];
+const githubReadFileTool: Tool = {
+  name: 'github_read_file',
+  description: 'Read one file or list one folder of a GitHub repository without cloning it (e.g. package.json, src/App.tsx, docs/). Use it to study how a project is built before reusing it.',
+  parameters: {
+    type: 'object',
+    properties: {
+      repo: { type: 'string', description: 'owner/name' },
+      path: { type: 'string', description: 'File or folder path inside the repo ("" for the root)' },
+      ref: { type: 'string', description: 'Branch, tag or commit (default branch if omitted)' },
+    },
+    required: ['repo'],
+  },
+  modes: ['chat', 'work'],
+  assess: (args) => ({ risk: 'safe', title: `GitHub ${optStr(args, 'repo')}/${optStr(args, 'path')}`, detail: '', allowKey: 'web' }),
+  async run(args, context) {
+    const slug = str(args, 'repo').replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').split('/').slice(0, 2).join('/');
+    const target = optStr(args, 'path').replace(/^\/+/, '');
+    const ref = optStr(args, 'ref');
+    const route = `/repos/${slug}/contents/${target.split('/').map(encodeURIComponent).join('/')}${ref ? `?ref=${encodeURIComponent(ref)}` : ''}`;
+    const body = await github<{ type: string; name: string; size: number; content?: string; encoding?: string }[] | { type: string; name: string; size: number; content?: string; encoding?: string }>(route, context.signal);
+    if (Array.isArray(body)) return `${slug}/${target} contains:\n${body.map((entry) => `${entry.name}${entry.type === 'dir' ? '/' : `  (${entry.size} B)`}`).join('\n')}`;
+    if (body.type !== 'file' || !body.content) return `${target} is a ${body.type}; it cannot be shown as text.`;
+    return `${slug}/${target} (${body.size} bytes):\n${clip(Buffer.from(body.content, 'base64').toString('utf8'), 14_000)}`;
+  },
+};
+
+export const webTools: Tool[] = [webSearchTool, fetchUrlTool, githubSearchTool, githubRepoTool, githubReadFileTool];

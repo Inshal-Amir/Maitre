@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import type { ApprovalRequest, AssistantMessage, Message } from '../../shared/types';
+import type { ApprovalRequest, AssistantMessage, Message, Plan, QuestionRequest } from '../../shared/types';
+import { PlanPanel } from './Questions';
 import { ToolCard } from './ToolCard';
 import { Markdown } from './Markdown';
 import { Icon } from './Icon';
@@ -64,7 +65,7 @@ function Waiting({ phase }: { phase: 'compacting' | 'model' }): ReactElement {
   );
 }
 
-function Step({ step, approvals, waiting }: { step: AssistantMessage; approvals: Map<string, ApprovalRequest>; waiting: 'compacting' | 'model' | undefined }): ReactElement {
+function Step({ step, approvals, questions, waiting }: { step: AssistantMessage; approvals: Map<string, ApprovalRequest>; questions: Map<string, QuestionRequest>; waiting: 'compacting' | 'model' | undefined }): ReactElement {
   const thinking = step.streaming && !step.content && !step.toolCalls.length;
   return (
     <div className="step">
@@ -77,7 +78,7 @@ function Step({ step, approvals, waiting }: { step: AssistantMessage; approvals:
       )}
       {step.toolCalls.length > 0 && (
         <div className="tools">
-          {step.toolCalls.map((call) => <ToolCard key={call.id} call={call} approval={approvals.get(call.id)} />)}
+          {step.toolCalls.map((call) => <ToolCard key={call.id} call={call} approval={approvals.get(call.id)} question={questions.get(call.id)} />)}
         </div>
       )}
       {step.error && <div className="step-error" role="alert">{step.error}</div>}
@@ -85,9 +86,11 @@ function Step({ step, approvals, waiting }: { step: AssistantMessage; approvals:
   );
 }
 
-export function Thread({ messages, approvals, waiting, compactedAt }: {
+export function Thread({ messages, approvals, questions, plan, waiting, compactedAt }: {
   messages: Message[];
   approvals: ApprovalRequest[];
+  questions: QuestionRequest[];
+  plan?: Plan;
   waiting?: 'compacting' | 'model';
   compactedAt?: number;
 }): ReactElement {
@@ -95,6 +98,7 @@ export function Thread({ messages, approvals, waiting, compactedAt }: {
   const stick = useRef(true);
   const turns = useMemo(() => toTurns(messages), [messages]);
   const approvalByCall = useMemo(() => new Map(approvals.map((request) => [request.toolCallId, request])), [approvals]);
+  const questionByCall = useMemo(() => new Map(questions.map((request) => [request.toolCallId, request])), [questions]);
 
   useEffect(() => {
     const element = scroller.current;
@@ -109,11 +113,12 @@ export function Thread({ messages, approvals, waiting, compactedAt }: {
   useLayoutEffect(() => {
     const element = scroller.current;
     if (element && stick.current) element.scrollTop = element.scrollHeight;
-  }, [messages, approvals, waiting]);
+  }, [messages, approvals, questions, waiting]);
 
   return (
     <div className="thread" ref={scroller}>
       <div className="thread-inner">
+        {plan && plan.steps.length > 0 && <PlanPanel plan={plan} />}
         {turns.map((turn) => (
           <Fragment key={turn.kind === 'user' ? turn.message.id : turn.id}>
             {compactedAt !== undefined && compactedAt > 0 && turn.start === compactedAt && (
@@ -135,7 +140,7 @@ export function Thread({ messages, approvals, waiting, compactedAt }: {
               <div className="turn assistant">
                 <div className="avatar" aria-hidden="true">Z</div>
                 <div className="steps">
-                  {turn.steps.map((step, index) => <Step key={step.id} step={step} approvals={approvalByCall} waiting={index === turn.steps.length - 1 ? waiting : undefined} />)}
+                  {turn.steps.map((step, index) => <Step key={step.id} step={step} approvals={approvalByCall} questions={questionByCall} waiting={index === turn.steps.length - 1 ? waiting : undefined} />)}
                 </div>
               </div>
             )}

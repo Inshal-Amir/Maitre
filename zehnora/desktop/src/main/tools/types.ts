@@ -1,14 +1,23 @@
 import type { JsonSchema, McpInputSchema } from '../llm';
-import type { Mode, Risk } from '../../shared/types';
+import type { Mode, Plan, Question, Risk } from '../../shared/types';
 
 export type ArgValue = string | number | boolean | null | ArgValue[] | { [key: string]: ArgValue };
 export type Args = { [key: string]: ArgValue };
+
+/** What agent-level tools (questions, project folder, plan) can do to the running conversation. */
+export interface AgentHooks {
+  ask(title: string, questions: Question[]): Promise<string[] | null>;
+  setProject(dir: string): void;
+  getPlan(): Plan | undefined;
+  setPlan(plan: Plan): void;
+}
 
 export interface ToolContext {
   conversationId: string;
   mode: Mode;
   cwd: string;
   signal: AbortSignal;
+  agent?: AgentHooks;
 }
 
 export interface Assessment {

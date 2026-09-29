@@ -98,7 +98,7 @@ export function App(): ReactElement {
         {needsAccount ? (
           <Onboarding status={state.status} onConnected={state.refreshStatus} onUseKey={() => setSettingsOpen(true)} />
         ) : hasMessages && active ? (
-          <Thread messages={active.messages} approvals={state.approvals} waiting={state.waiting.get(active.id)} compactedAt={active.compactedAt ?? active.summary?.upTo} />
+          <Thread messages={active.messages} approvals={state.approvals} questions={state.questions} plan={active.plan} waiting={state.waiting.get(active.id)} compactedAt={active.compactedAt ?? active.summary?.upTo} />
         ) : (
           <Welcome mode={mode} onPick={(text) => setSeed({ text, nonce: Date.now() })} />
         )}

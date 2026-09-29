@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ReactElement } from 'react';
-import type { ApprovalDecision, ApprovalRequest, ToolCall } from '../../shared/types';
+import type { ApprovalDecision, ApprovalRequest, QuestionRequest, ToolCall } from '../../shared/types';
+import { QuestionBox } from './Questions';
 import type { IconName } from './Icon';
 import { Icon } from './Icon';
 import { api } from '../state';
@@ -28,11 +29,20 @@ const TOOL_ICONS: Record<string, IconName> = {
   open: 'folder',
   check_web_page: 'globe',
   current_time: 'spark',
+  ask_user: 'chat',
+  set_project: 'folder',
+  update_plan: 'check',
+  update_brief: 'file',
+  add_note: 'edit',
+  github_read_file: 'github',
+  remember: 'brain',
+  forget_memory: 'brain',
 };
 
 const STATUS_LABEL: Record<ToolCall['status'], string> = {
   pending: 'Preparing',
   'awaiting-approval': 'Needs approval',
+  'awaiting-input': 'Waiting for your answer',
   running: 'Running',
   done: 'Done',
   error: 'Failed',
@@ -70,6 +80,7 @@ function StatusMark({ status }: { status: ToolCall['status'] }): ReactElement {
   if (status === 'running' || status === 'pending') return <span className="spinner" aria-label={STATUS_LABEL[status]} />;
   if (status === 'done') return <Icon name="check" size={15} className="ok" />;
   if (status === 'awaiting-approval') return <Icon name="shield" size={15} className="warn" />;
+  if (status === 'awaiting-input') return <Icon name="chat" size={15} className="warn" />;
   return <Icon name="x" size={15} className="bad" />;
 }
 
@@ -95,7 +106,7 @@ function ApprovalBox({ request }: { request: ApprovalRequest }): ReactElement {
   );
 }
 
-export function ToolCard({ call, approval }: { call: ToolCall; approval?: ApprovalRequest }): ReactElement {
+export function ToolCard({ call, approval, question }: { call: ToolCall; approval?: ApprovalRequest; question?: QuestionRequest }): ReactElement {
   const [open, setOpen] = useState(false);
   const label = call.summary ?? fallbackLabel(call);
   return (
@@ -108,6 +119,7 @@ export function ToolCard({ call, approval }: { call: ToolCall; approval?: Approv
         <Icon name="chevron" size={14} className={`tool-chevron ${open ? 'open' : ''}`} />
       </button>
       {approval && <ApprovalBox request={approval} />}
+      {question && <QuestionBox request={question} />}
       {open && (
         <div className="tool-body">
           <div className="tool-section">Input</div>

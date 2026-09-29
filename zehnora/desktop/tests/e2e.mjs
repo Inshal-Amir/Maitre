@@ -129,6 +129,20 @@ try {
   await lastAssistant(page).locator('.tool-done:has-text("rm -rf hello")').waitFor({ timeout: 15_000 });
   check('approved command runs', !fs.existsSync(file));
 
+  await page.click('.new-chat');
+  await send(page, 'build a website for me');
+  await page.waitForSelector('.question', { timeout: 15_000 });
+  check('agent asks questions with clickable options first', (await page.locator('.question .option').count()) === 5);
+  await page.click('.question .option:has-text("Portfolio")');
+  await page.click('.question .option:has-text("Minimal")');
+  await page.screenshot({ path: path.join(evidence, '12-agent-questions.png') });
+  await page.click('.question button:has-text("Send answers")');
+  await page.waitForSelector('.plan .plan-step', { timeout: 15_000 });
+  const answered = mock.requests[mock.requests.length - 1].messages.filter((m) => m.role === 'tool').map((m) => m.content).join('\n');
+  check('answers go back to the agent', /A: Portfolio/.test(answered) && /A: Minimal/.test(answered));
+  check('plan checklist is shown with progress', (await page.innerText('.plan')).includes('0/3') && (await page.locator('.plan-step.in_progress').count()) === 1);
+  await page.screenshot({ path: path.join(evidence, '13-agent-plan.png') });
+
   const pdf = makePdf(path.join(workDir, 'report.pdf'), ['Quarterly report for Zehnora', 'Revenue grew 40 percent']);
   await app.evaluate(({ dialog }, file) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] }); }, pdf);
   await page.click('button.attach');
