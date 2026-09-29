@@ -203,6 +203,9 @@ function createWindow(): void {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true },
   });
   mainWindow.once('ready-to-show', () => mainWindow?.show());
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (mainWindow && !mainWindow.isVisible()) mainWindow.show();
+  });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//i.test(url)) shell.openExternal(url);
     return { action: 'deny' };
@@ -225,11 +228,7 @@ app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
-app.on('second-instance', () => {
-  if (!mainWindow) return;
-  if (mainWindow.isMinimized()) mainWindow.restore();
-  mainWindow.focus();
-});
+app.on('second-instance', () => showWindow());
 
 app.whenReady().then(async () => {
   session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) => callback(permission === 'clipboard-sanitized-write'));
@@ -247,9 +246,19 @@ app.whenReady().then(async () => {
   connectors.start().catch((error: Error) => console.error('[zehnora] connectors failed to start', error));
 });
 
-app.on('activate', () => {
-  if (!mainWindow) createWindow();
-});
+/** Dock click or `open` on a running app: bring back the window (macOS keeps the app alive after the window closes). */
+function showWindow(): void {
+  if (!app.isReady()) return;
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+app.on('activate', showWindow);
 
 app.on('before-quit', () => {
   runtime.stopAll();
