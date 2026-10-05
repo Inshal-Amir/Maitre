@@ -5,7 +5,9 @@
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 [ -e "$MODEL_PATH" ] || die "model not downloaded ($MODEL_PATH): run download-model.sh"
 GUARD_LOCK="$REPO/.server-state/guard.lock"
-if [ -f "$GUARD_LOCK" ]; then
+# The hardware guard is optional: ZEHNORA_GUARD=on in server.env turns it on (default off while it is being checked).
+GUARD="${ZEHNORA_GUARD:-off}"
+if [ "$GUARD" = on ] && [ -f "$GUARD_LOCK" ]; then
   case "$(cut -d' ' -f1 "$GUARD_LOCK")" in
     cooldown) die "the hardware guard is cooling the GPU down; it restarts the model by itself ($(cat "$GUARD_LOCK"))" ;;
     *) die "the hardware guard shut the model down: $(cat "$GUARD_LOCK"). Check the PC, then run guard-reset.sh" ;;
@@ -14,7 +16,11 @@ fi
 [ -f "$REPO/zehnora/portal/dist/index.html" ] || die "portal not built: cd zehnora/portal && npm ci && npm run build"
 docker info >/dev/null 2>&1 || die "Docker is not running (start Docker Desktop with the WSL2 backend)"
 say "building images (litellm, platform-api)"; dc build
-dc up -d guard >/dev/null && say "hardware guard running (docker logs zehnora-guard-1)"
+if [ "$GUARD" = on ]; then
+  dc up -d guard >/dev/null && say "hardware guard running (docker logs zehnora-guard-1)"
+else
+  docker rm -f zehnora-guard-1 >/dev/null 2>&1 && say "hardware guard removed (ZEHNORA_GUARD=off)" || say "hardware guard off (ZEHNORA_GUARD=off)"
+fi
 say "starting postgres + model ($ZEHNORA_ENGINE; loading can take minutes)"; dc up -d postgres model
 wait_healthy() { local s="$1" i=0; until [ "$(docker inspect -f '{{.State.Health.Status}}' "zehnora-$s-1" 2>/dev/null)" = healthy ]; do
   i=$((i+1)); [ $i -ge 180 ] && die "$s not healthy (dc logs $s)"; sleep 5; done; say "$s healthy"; }
