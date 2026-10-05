@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, type ModelInfo } from '../api';
 import { ErrorNote } from '../App';
+import { PageHead } from '../components/ui';
 
 export default function Models() {
   const [models, setModels] = useState<ModelInfo[]>([]);
@@ -11,9 +12,10 @@ export default function Models() {
   }, []);
   return (
     <>
-      <header className="page-head"><h1>Models</h1></header>
+      <PageHead title="Models" subtitle="Models your keys can use, their limits and credit rates." />
       <ErrorNote error={error} />
-      <section className="card">
+      <section className="card flush">
+        <div className="card-head"><h2>Available models</h2></div>
         <table>
           <thead><tr><th>Model</th><th>Status</th><th>Tested context</th><th>Max output</th><th>Input rate</th><th>Output rate</th></tr></thead>
           <tbody>
@@ -27,7 +29,7 @@ export default function Models() {
             ))}
           </tbody>
         </table>
-        <p className="muted small">{note} Example: 100 input + 200 output tokens at 1/2 units = 500 units = 0.5 credits. Rates are our demo rates, not market prices.</p>
+        <p className="muted small" style={{ padding: '12px 20px 16px', margin: 0, borderTop: '1px solid var(--border)' }}>{note} Example: 100 input + 200 output tokens at 1/2 units = 500 units = 0.5 credits. Rates are our demo rates, not market prices.</p>
       </section>
     </>
   );

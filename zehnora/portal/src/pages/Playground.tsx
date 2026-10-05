@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowUp, Brain, ChevronRight, MessageSquare, SquarePen, Square, Trash2 } from 'lucide-react';
+import { ArrowUp, Brain, ChevronRight, SquarePen, Square, Trash2 } from 'lucide-react';
 import { api, streamPost } from '../api';
 import { ErrorNote, useSession } from '../App';
 import Markdown, { CopyButton } from '../components/Markdown';
+import brand from '@brand/brand.json';
 
 interface Conv { id: string; title: string; model: string; updated_at: string }
 interface Msg { id: string; role: string; content: string; reasoning?: string; streaming?: boolean }
@@ -44,9 +45,12 @@ function Message({ m }: { m: Msg }) {
   const thinking = !!m.streaming && !answer;
   return (
     <div className="msg assistant">
-      {reasoning && <Thinking text={reasoning} active={thinking} />}
-      {answer ? <Markdown text={answer} /> : m.streaming && !reasoning && <div className="dots"><span /><span /><span /></div>}
-      {answer && !m.streaming && <div className="msg-actions"><CopyButton text={answer} /></div>}
+      <span className="mark" aria-hidden="true">{brand.productName[0]}</span>
+      <div className="body">
+        {reasoning && <Thinking text={reasoning} active={thinking} />}
+        {answer ? <Markdown text={answer} /> : m.streaming && !reasoning && <div className="dots"><span /><span /><span /></div>}
+        {answer && !m.streaming && <div className="msg-actions"><CopyButton text={answer} /></div>}
+      </div>
     </div>
   );
 }
@@ -152,12 +156,15 @@ export default function Playground() {
 
       <section className="chat">
         <div className="chat-top">
-          <span className="model-pill"><MessageSquare size={14} />zehnora-coder</span>
+          <span className="model-pill"><span className="live" />zehnora-coder</span>
+          <span className="muted tiny">Each message uses credits from your account</span>
         </div>
         <div className="messages" ref={scroller}>
           {empty ? (
             <div className="empty">
+              <span className="mark">{brand.productName[0]}</span>
               <h2>What are we building today?</h2>
+              <p>Try the model before you use it from your own code.</p>
               <div className="suggestions">
                 {SUGGESTIONS.map((s) => <button key={s} className="suggestion" onClick={() => send(s)} disabled={busy}>{s}</button>)}
               </div>

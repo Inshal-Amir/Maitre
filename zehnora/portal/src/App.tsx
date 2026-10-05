@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, BookOpen, Boxes, KeyRound, LogOut, MessageSquare, Server, Users, type LucideIcon } from 'lucide-react';
+import { BarChart3, BookOpen, Boxes, Coins, KeyRound, LogOut, MessageSquare, Server, Users, type LucideIcon } from 'lucide-react';
+import { ThemeSwitch } from './components/ui';
 import brand from '@brand/brand.json';
 import { api, ApiError, type Me } from './api';
 import AuthPage from './pages/Auth';
@@ -64,25 +65,29 @@ function Shell() {
   return (
     <div className={`layout ${pathname.startsWith('/playground') ? 'full' : ''}`}>
       <aside className="sidebar">
-        <div className="logo"><span className="mark">{brand.productName[0]}</span>{brand.productName}<span className="logo-sub">Platform</span></div>
+        <div className="logo"><span className="mark">{brand.productName[0]}</span>{brand.productName}<span className="logo-sub">Console</span></div>
         <nav>
+          <NavItem to="/" icon={BarChart3} label="Overview" end />
           <NavItem to="/playground" icon={MessageSquare} label="Playground" />
           <div className="nav-group">Build</div>
           <NavItem to="/keys" icon={KeyRound} label="API keys" />
           <NavItem to="/models" icon={Boxes} label="Models" />
           <NavItem to="/docs" icon={BookOpen} label="Quickstart" />
-          <div className="nav-group">Account</div>
-          <NavItem to="/" icon={BarChart3} label="Usage" end />
           {isAdmin && <div className="nav-group">Admin</div>}
           {isAdmin && <NavItem to="/admin/users" icon={Users} label="Users & credits" />}
           {isAdmin && <NavItem to="/admin/system" icon={Server} label="Models & requests" />}
         </nav>
         <div className="sidebar-foot">
           {me?.profile !== 'gpu' && <div className="badge warn" title="This deployment does not use the GPU model">profile: {me?.profile}</div>}
-          <div className="credits-line"><span className="muted">Credits</span><strong>{me ? me.wallet.available_credits.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}</strong></div>
+          <div className="credits-card">
+            <div className="credits-label"><Coins size={13} />Available credits</div>
+            <div className="credits-value">{me ? me.wallet.available_credits.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}</div>
+            <div className="credits-note">Granted by the administrator</div>
+          </div>
+          <ThemeSwitch />
           <div className="account">
             <span className="avatar">{me?.user.email[0].toUpperCase()}</span>
-            <span className="email" title={me?.user.email}>{me?.user.email}</span>
+            <span className="who"><span className="email" title={me?.user.email}>{me?.user.email}</span><span className="role">{me?.user.role}</span></span>
             <button className="ghost icon" onClick={logout} aria-label="Log out" title="Log out"><LogOut size={15} /></button>
           </div>
         </div>
@@ -110,8 +115,7 @@ export function ErrorNote({ error }: { error: unknown }) {
   const e = error as ApiError;
   return (
     <div className="alert error" role="alert">
-      {e.message ?? String(error)}
-      {e.requestId && <span className="muted small"> (request {e.requestId.slice(0, 8)})</span>}
+      <span>{e.message ?? String(error)}{e.requestId && <span className="muted small"> (request {e.requestId.slice(0, 8)})</span>}</span>
     </div>
   );
 }

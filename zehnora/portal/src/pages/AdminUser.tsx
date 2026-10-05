@@ -42,8 +42,8 @@ export default function AdminUser() {
   if (!d) return <><ErrorNote error={error} /><div className="muted">Loading…</div></>;
   return (
     <>
-      <header className="page-head"><h1>{d.user.email}</h1>
-        <span className={`badge ${d.user.status}`}>{d.user.status}</span><span className="badge">{d.user.role}</span></header>
+      <header className="page-head"><div className="titles"><h1>{d.user.email}</h1><p className="subtitle">Joined {new Date(d.user.created_at).toLocaleDateString()}</p></div>
+        <span className={`badge ${d.user.status}`}>{d.user.status}</span><span className="badge plain">{d.user.role}</span></header>
       <ErrorNote error={error} />
       {notice && <div className="alert info">{notice}</div>}
       <section className="stats">

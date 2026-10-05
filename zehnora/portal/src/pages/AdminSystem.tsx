@@ -52,7 +52,7 @@ export default function AdminSystem() {
 
   return (
     <>
-      <header className="page-head"><h1>Models &amp; requests</h1><span className="badge warn">profile: {profile}</span></header>
+      <header className="page-head"><div className="titles"><h1>Models &amp; requests</h1><p className="subtitle">Catalog, rates, requests waiting for reconciliation, errors and the audit log.</p></div><span className={`badge ${profile === 'gpu' ? 'ok' : 'warn'}`}>profile: {profile}</span></header>
       <ErrorNote error={error} />
       <section className="card"><h2>Model catalog</h2>
         <table><thead><tr><th>Alias</th><th>Actual deployment</th><th>Context / max out</th><th>Current rate</th><th>Visible</th><th>Available</th><th /></tr></thead>
