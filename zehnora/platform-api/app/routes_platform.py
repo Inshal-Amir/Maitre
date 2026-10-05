@@ -51,6 +51,16 @@ log = logging.getLogger("zehnora.platform")
 router = APIRouter(prefix="/platform/v1")
 
 PLAYGROUND_KEEPALIVE_S = 15.0
+NO_REPLY = "_(No answer was received — the request failed or was stopped.)_"
+
+# Only for the portal playground (never added to customer API calls).
+PLAYGROUND_SYSTEM = """You are Zehnora, a helpful AI assistant in the Zehnora Console playground.
+Write answers in clean GitHub-flavoured Markdown:
+- Put every piece of code in a fenced code block with its language tag (```python, ```bash, ```sql, ```json, ...). Never put code outside a code block.
+- When you show what a program prints, put it in a separate ```text block introduced with "Output:".
+- Use short paragraphs, headings (##) for longer answers, bullet or numbered lists for steps, and tables for comparisons.
+- Use `inline code` for names of files, functions, commands and values.
+- Answer in the language the user writes in (English, Urdu or Roman Urdu)."""
 _turns: set[asyncio.Task] = set()
 
 
@@ -334,7 +344,8 @@ async def _turn_request(db: AsyncSession, conv: PlaygroundConversation, body: Me
     model = await load_model(db, conv.model_alias, None)
     history = (await db.scalars(select(PlaygroundMessage).where(PlaygroundMessage.conversation_id == conv.id)
                                 .order_by(PlaygroundMessage.created_at))).all()
-    messages = [{"role": m.role, "content": m.content} for m in history] + [{"role": "user", "content": body.content}]
+    messages = ([{"role": "system", "content": PLAYGROUND_SYSTEM}] + [{"role": m.role, "content": m.content} for m in history]
+                + [{"role": "user", "content": body.content}])
     req_body = {"model": model.alias, "messages": messages, "stream": body.stream}
     if body.max_tokens:
         req_body["max_tokens"] = body.max_tokens
@@ -354,7 +365,7 @@ async def _save_turn(db: AsyncSession, conv: PlaygroundConversation, content: st
 
 async def _save_streamed_turn(user_id: uuid.UUID, conv_id: uuid.UUID, content: str, reply: str, rid: str) -> None:
     async with sessionmaker()() as db:
-        await _save_turn(db, await _own_conversation(db, user_id, conv_id), content, reply, rid)
+        await _save_turn(db, await _own_conversation(db, user_id, conv_id), content, reply or NO_REPLY, rid)
 
 
 async def _play(user_id: uuid.UUID, conv_id: uuid.UUID, body: MessageCreate, gateway_key: str) -> dict:
@@ -416,11 +427,42 @@ async def _relay_stream(inner: AsyncIterator[bytes], slot, user_id: uuid.UUID, c
             yield chunk
     finally:
         # Scheduled, not awaited: a disconnected client cancels every await left in this block.
-        reply = "".join(parts).strip()
-        if reply:
-            _background(_save_streamed_turn(user_id, conv_id, content, reply, rid))
+        # The question is always kept in the history, also when no answer arrived.
+        _background(_save_streamed_turn(user_id, conv_id, content, "".join(parts).strip(), rid))
         _background(slot.__aexit__(None, None, None))
         await inner.aclose()
+
+
+async def _stream_turn(user_id: uuid.UUID, conv_id: uuid.UUID, body: MessageCreate, gateway_key: str,
+                       rid: str) -> AsyncIterator[bytes]:
+    """Streams a playground turn. Headers go out at once and an SSE comment every 15 s keeps Cloudflare
+    from cutting the request (HTTP 524) while the model is busy or still reading the prompt; errors that
+    happen after the 200 are sent as an SSE error event."""
+    async with sessionmaker()() as db:
+        user = await db.get(User, user_id)
+        conv = await _own_conversation(db, user_id, conv_id)
+        model, req_body = await _turn_request(db, conv, body)
+        slot = await acquire_slot()
+        start = asyncio.ensure_future(run_completion(user=user, model=model, body=req_body, gateway_key=gateway_key,
+                                                     source="playground", api_key_id=None, db=db))
+        try:
+            while not (await asyncio.wait({start}, timeout=PLAYGROUND_KEEPALIVE_S))[0]:
+                yield b": keep-alive\n\n"
+            result, request_id = start.result()
+        except ApiError as exc:
+            await slot.__aexit__(None, None, None)
+            _background(_save_streamed_turn(user_id, conv_id, body.content, "", exc.request_id or rid))
+            yield f"data: {json.dumps(error_body(exc.status, exc.code, exc.message, exc.request_id or rid))}\n\n".encode()
+            yield b"data: [DONE]\n\n"
+            return
+        except BaseException:
+            if not start.done():
+                start.cancel()
+            await slot.__aexit__(None, None, None)
+            raise
+        relay = _relay_stream(result.body_iterator, slot, user_id, conv_id, body.content, request_id)
+        async for chunk in relay:
+            yield chunk
 
 
 @router.post("/playground/conversations/{conv_id}/messages")
@@ -431,16 +473,9 @@ async def send_message(conv_id: uuid.UUID, body: MessageCreate, request: Request
     if not gateway_key:
         raise ApiError(503, "playground_not_configured", "The playground gateway credential is not configured.")
     if body.stream:
-        model, req_body = await _turn_request(db, conv, body)
-        slot = await acquire_slot()
-        try:
-            result, rid = await run_completion(user=p.user, model=model, body=req_body, gateway_key=gateway_key,
-                                               source="playground", api_key_id=None, db=db)
-        except BaseException:
-            await slot.__aexit__(None, None, None)
-            raise
-        result.body_iterator = _relay_stream(result.body_iterator, slot, p.user.id, conv_id, body.content, rid)
-        return result
+        return StreamingResponse(_stream_turn(p.user.id, conv_id, body, gateway_key, request_id_of(request)),
+                                 media_type="text/event-stream",
+                                 headers={"cache-control": "no-cache", "x-accel-buffering": "no"})
     turn = asyncio.create_task(_play(p.user.id, conv_id, body, gateway_key))
     _turns.add(turn)
     turn.add_done_callback(_turns.discard)

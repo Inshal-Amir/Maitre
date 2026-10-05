@@ -27,12 +27,13 @@ function splitThinking(text: string): { reasoning: string; answer: string } {
 
 function Thinking({ text, active }: { text: string; active: boolean }) {
   const [open, setOpen] = useState(false);
+  const preview = text.length > 260 ? `…${text.slice(-260)}` : text;
   return (
     <div className={`thinking ${open ? 'open' : ''}`}>
       <button type="button" className="ghost thinking-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
         <Brain size={14} /><span className={active ? 'shimmer' : ''}>{active ? 'Thinking…' : 'Thought process'}</span><ChevronRight size={14} className="chev" />
       </button>
-      {open && <div className="thinking-body">{text.trim()}</div>}
+      {open ? <div className="thinking-body">{text.trim()}</div> : active && <div className="thinking-live">{preview.trim()}</div>}
     </div>
   );
 }
@@ -48,7 +49,7 @@ function Message({ m }: { m: Msg }) {
       <span className="mark" aria-hidden="true">{brand.productName[0]}</span>
       <div className="body">
         {reasoning && <Thinking text={reasoning} active={thinking} />}
-        {answer ? <Markdown text={answer} /> : m.streaming && !reasoning && <div className="dots"><span /><span /><span /></div>}
+        {answer ? <Markdown text={answer} streaming={m.streaming} /> : m.streaming && !reasoning && <div className="dots"><span /><span /><span /></div>}
         {answer && !m.streaming && <div className="msg-actions"><CopyButton text={answer} /></div>}
       </div>
     </div>
@@ -78,9 +79,17 @@ export default function Playground() {
     if (id && id === createdHere.current) return;
     if (id) loadConv(id).catch(setError); else setMessages([]);
   }, [id]);
+  const stick = useRef(true);
   useEffect(() => {
     const el = scroller.current;
-    if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 160) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    const onScroll = () => { stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 160; };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+  useEffect(() => {
+    const el = scroller.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [messages]);
   useEffect(() => {
     const el = input.current;
@@ -94,27 +103,29 @@ export default function Playground() {
 
   const send = async (content: string) => {
     if (!content.trim() || busy) return;
+    stick.current = true;
     setBusy(true);
     setError(null);
     setText('');
     const controller = new AbortController();
     abort.current = controller;
     let cid = id;
+    setMessages((ms) => [...ms, { id: `u-${Date.now()}`, role: 'user', content },
+      { id: `a-${Date.now()}`, role: 'assistant', content: '', reasoning: '', streaming: true }]);
     try {
       if (!cid) {
         cid = (await api.post<{ id: string }>('/playground/conversations', {})).id;
         createdHere.current = cid;
         navigate(`/playground/${cid}`, { replace: true });
       }
-      setMessages((ms) => [...ms, { id: `u-${Date.now()}`, role: 'user', content },
-        { id: `a-${Date.now()}`, role: 'assistant', content: '', reasoning: '', streaming: true }]);
       await streamPost(`/playground/conversations/${cid}/messages`, { content, stream: true }, (d) =>
         patchLast((m) => ({ ...m, content: m.content + (d.content ?? ''), reasoning: (m.reasoning ?? '') + (d.reasoning ?? '') })), controller.signal);
     } catch (err) {
       if (!controller.signal.aborted) setError(err);
     } finally {
       patchLast((m) => (m.role === 'assistant' ? { ...m, streaming: false } : m));
-      setMessages((ms) => ms.filter((m) => m.role !== 'assistant' || m.content || m.reasoning));
+      setMessages((ms) => ms.map((m, i) => (i === ms.length - 1 && m.role === 'assistant' && !m.content && !m.reasoning
+        ? { ...m, content: controller.signal.aborted ? '_Stopped._' : '_(No answer was received.)_' } : m)));
       abort.current = null;
       setBusy(false);
       loadList().catch(() => {});

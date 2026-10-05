@@ -188,7 +188,8 @@ def test_output_limit_validation(admin, user):
     grant(admin, user, 100_000)
     key = user.new_key()["secret"]
     assert api(key, {"messages": MSG, "max_tokens": 10, "max_completion_tokens": 20}).status_code == 400
-    assert api(key, {"messages": MSG, "max_tokens": 999_999}).status_code == 400
+    # Above the model's output limit: capped to the limit instead of rejected (API change 8bb3f8947).
+    assert api(key, {"messages": MSG, "max_tokens": 999_999}).status_code == 200
     r = api(key, {"messages": [{"role": "user", "content": "[[mock:long]]"}], "max_completion_tokens": 7})
     assert r.status_code == 200 and r.json()["usage"]["completion_tokens"] == 7
 
@@ -393,6 +394,44 @@ def test_playground_uses_account_wallet_and_persists(admin, user):
     assert wallet(user)["balance_units"] < 100_000
     assert user.delete(f"/platform/v1/playground/conversations/{conv['id']}").status_code == 200
     assert user.get(f"/platform/v1/playground/conversations/{conv['id']}").status_code == 404
+
+
+def _sse(r) -> tuple[list[dict], list[str]]:
+    events, comments = [], []
+    for line in r.text.splitlines():
+        if line.startswith(":"):
+            comments.append(line)
+        elif line.startswith("data: ") and line != "data: [DONE]":
+            events.append(json.loads(line[6:]))
+    return events, comments
+
+
+def test_playground_streams_with_system_prompt_and_saves(admin, user):
+    grant(admin, user, 100_000)
+    conv = user.post("/platform/v1/playground/conversations", json={}).json()
+    r = user.post(f"/platform/v1/playground/conversations/{conv['id']}/messages", json={"content": "stream hello there", "stream": True})
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/event-stream")
+    events, _ = _sse(r)
+    text = "".join((c.get("delta") or {}).get("content") or "" for e in events for c in e.get("choices") or [])
+    assert text.startswith("MOCK reply to: stream hello there")
+    msgs = user.get(f"/platform/v1/playground/conversations/{conv['id']}").json()["messages"]
+    assert [m["role"] for m in msgs] == ["user", "assistant"] and msgs[0]["content"] == "stream hello there"
+    assert all(m["role"] != "system" for m in msgs), "the system prompt is not stored in the conversation"
+
+
+def test_playground_stream_error_keeps_the_question(user):
+    conv = user.post("/platform/v1/playground/conversations", json={}).json()
+    r = user.post(f"/platform/v1/playground/conversations/{conv['id']}/messages", json={"content": "no credits here", "stream": True})
+    assert r.status_code == 200
+    events, _ = _sse(r)
+    assert events and events[-1]["error"]["code"] == "insufficient_credits"
+    for _ in range(20):
+        msgs = user.get(f"/platform/v1/playground/conversations/{conv['id']}").json()["messages"]
+        if msgs:
+            break
+        time.sleep(0.2)
+    assert [m["role"] for m in msgs] == ["user", "assistant"] and msgs[0]["content"] == "no credits here"
+    assert "No answer" in msgs[1]["content"]
 
 
 def test_playground_zero_credits_rejected(user):
