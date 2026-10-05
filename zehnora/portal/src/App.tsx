@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, BookOpen, Boxes, Coins, KeyRound, LogOut, MessageSquare, Server, Users, type LucideIcon } from 'lucide-react';
+import { BarChart3, BookOpen, Boxes, Coins, CreditCard, KeyRound, LogOut, MessageSquare, Server, Users, type LucideIcon } from 'lucide-react';
 import { ThemeSwitch } from './components/ui';
 import brand from '@brand/brand.json';
 import { api, ApiError, type Me } from './api';
@@ -13,6 +13,7 @@ import Docs from './pages/Docs';
 import AdminUsers from './pages/AdminUsers';
 import AdminUser from './pages/AdminUser';
 import AdminSystem from './pages/AdminSystem';
+import Billing from './pages/Billing';
 
 interface Session { me: Me | null; refresh: () => Promise<void>; setMe: (m: Me | null) => void }
 const SessionContext = createContext<Session>({ me: null, refresh: async () => {}, setMe: () => {} });
@@ -73,6 +74,8 @@ function Shell() {
           <NavItem to="/keys" icon={KeyRound} label="API keys" />
           <NavItem to="/models" icon={Boxes} label="Models" />
           <NavItem to="/docs" icon={BookOpen} label="Quickstart" />
+          <div className="nav-group">Account</div>
+          <NavItem to="/billing" icon={CreditCard} label="Billing" />
           {isAdmin && <div className="nav-group">Admin</div>}
           {isAdmin && <NavItem to="/admin/users" icon={Users} label="Users & credits" />}
           {isAdmin && <NavItem to="/admin/system" icon={Server} label="Models & requests" />}
@@ -82,7 +85,7 @@ function Shell() {
           <div className="credits-card">
             <div className="credits-label"><Coins size={13} />Available credits</div>
             <div className="credits-value">{me ? me.wallet.available_credits.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}</div>
-            <div className="credits-note">Granted by the administrator</div>
+            <div className="credits-note"><NavLink to="/billing">Get more credits</NavLink></div>
           </div>
           <ThemeSwitch />
           <div className="account">
@@ -100,6 +103,7 @@ function Shell() {
           <Route path="/playground" element={<Playground />} />
           <Route path="/playground/:id" element={<Playground />} />
           <Route path="/docs" element={<Docs />} />
+          <Route path="/billing" element={<Billing />} />
           {isAdmin && <Route path="/admin/users" element={<AdminUsers />} />}
           {isAdmin && <Route path="/admin/users/:id" element={<AdminUser />} />}
           {isAdmin && <Route path="/admin/system" element={<AdminSystem />} />}

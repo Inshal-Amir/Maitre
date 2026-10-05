@@ -20,6 +20,7 @@ from .errors import ApiError, api_error_handler, error_body, request_id_of
 from .inference import router as inference_router
 from .routes_admin import router as admin_router
 from .routes_platform import router as platform_router
+from .routes_oauth import router as oauth_router
 
 log = logging.getLogger("zehnora")
 
@@ -93,5 +94,6 @@ async def health():
 
 
 app.include_router(platform_router)
+app.include_router(oauth_router)
 app.include_router(admin_router)
 app.include_router(inference_router)

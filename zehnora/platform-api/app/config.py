@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     login_window_minutes: int = 15
     min_password_length: int = 10
 
+    # "Sign in with Google" for the console (a Google OAuth client of type "Web application"). Off when unset.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_auth_url: str = "https://accounts.google.com/o/oauth2/v2/auth"
+    google_token_url: str = "https://oauth2.googleapis.com/token"
+    # Public console origin used for the OAuth redirect (https://console.<domain>); derived from the request when empty.
+    console_url: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -30,3 +30,21 @@ Zehnora Desktop connects to Google through MCP. Users click **Settings → Conne
 
 ## Other MCP servers
 Settings → Connected apps → **Add MCP server** accepts a remote URL (Streamable HTTP, with MCP OAuth sign-in and dynamic client registration; redirect `http://127.0.0.1:33418/mcp/callback`) or a local command (stdio, e.g. `npx -y @modelcontextprotocol/server-filesystem ~/Documents`). Their tools appear to the agent as `<server name>_<tool>`, with approval risk taken from the tools' annotations and names.
+
+## Sign in with Google on the console (console.dubg.dev)
+
+Separate from the Desktop connector above: this lets anyone create a console account with Google. It only asks for `openid email profile`, so the app can be published to all Google users without Google's verification of restricted scopes. Use a **separate Google Cloud project** (e.g. "Zehnora Console") so the Gmail/Drive scopes of the Desktop connector do not hold this one in Testing mode.
+
+1. Google Auth Platform → Branding: app name "Zehnora", support email, app domain `dubg.dev`; Audience: **External**, then **Publish app** (In production).
+2. Clients → Create client → **Web application**:
+   - Authorized JavaScript origins: `https://console.dubg.dev`
+   - Authorized redirect URIs: `https://console.dubg.dev/platform/v1/auth/google/callback`
+3. On the GPU PC add to `~/zehnora/.server-secrets/platform.env` (never commit it):
+   ```
+   ZEHNORA_GOOGLE_CLIENT_ID=<client id>.apps.googleusercontent.com
+   ZEHNORA_GOOGLE_CLIENT_SECRET=<client secret>
+   ZEHNORA_CONSOLE_URL=https://console.dubg.dev
+   ```
+   then run `zehnora/scripts/server/start.sh --with-tunnel`. The login and sign-up pages show "Continue with Google" as soon as `/platform/v1/auth/providers` reports `google: true`.
+
+How it works (`platform-api/app/routes_oauth.py`): OpenID Connect code flow with PKCE, state and nonce in a short-lived signed cookie; the ID token comes straight from Google's token endpoint and its issuer, audience, expiry, nonce and `email_verified` are checked. Accounts are matched by Google subject, then by verified email (an existing password account gets Google linked and keeps its password), else a new user with zero credits is created. Tests: `platform-api/tests/test_oauth.py` (mock Google).

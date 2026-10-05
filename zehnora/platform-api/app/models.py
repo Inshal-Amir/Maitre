@@ -48,6 +48,20 @@ class User(Base):
     )
 
 
+class OAuthIdentity(Base):
+    """A sign-in identity from an external provider (Google), linked to one platform user."""
+
+    __tablename__ = "oauth_identities"
+    id: Mapped[uuid.UUID] = _uuid()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
+    created_at: Mapped[datetime] = _created()
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (UniqueConstraint("provider", "subject", name="oauth_identities_provider_subject_uq"),)
+
+
 class Session(Base):
     __tablename__ = "sessions"
     id: Mapped[uuid.UUID] = _uuid()
