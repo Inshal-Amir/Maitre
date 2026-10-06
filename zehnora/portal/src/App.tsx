@@ -21,6 +21,7 @@ const SessionContext = createContext<Session>({ me: null, refresh: async () => {
 export const useSession = () => useContext(SessionContext);
 
 export default function App() {
+  const { pathname } = useLocation();
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +40,8 @@ export default function App() {
   useEffect(() => { refresh(); }, [refresh]);
 
   if (loading) return <div className="boot"><span className="mark">{brand.productName[0]}</span></div>;
-  if (window.location.pathname === '/download') return <SessionContext.Provider value={{ me, refresh, setMe }}><Download /></SessionContext.Provider>;
+  // The download page is a standalone public page (no sidebar), reachable signed in or out.
+  if (pathname === '/download') return <SessionContext.Provider value={{ me, refresh, setMe }}><Download /></SessionContext.Provider>;
 
   return (
     <SessionContext.Provider value={{ me, refresh, setMe }}>
