@@ -50,7 +50,8 @@ export function App(): ReactElement {
   const running = active ? state.running.has(active.id) : false;
   const hasMessages = Boolean(active?.messages.length);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
-  const workDir = active?.cwd ?? state.settings?.defaultWorkDir;
+  const workDir = (active?.mode === 'work' ? active.cwd : undefined) ?? state.pendingFolder ?? state.settings?.defaultWorkDir;
+  const folderChosen = active?.mode === 'work' ? Boolean(active.cwdChosen) : Boolean(state.pendingFolder);
   const needsAccount = state.settings !== null && !state.settings.hasApiKey;
 
   return (
@@ -86,7 +87,7 @@ export function App(): ReactElement {
           <div className="topbar-actions no-drag">
             {mode === 'work' && <ProcessMenu processes={state.processes} />}
             {mode === 'work' && workDir && (
-              <button type="button" className="chip" onClick={active ? state.changeWorkDir : () => setSettingsOpen(true)} title={`Working folder: ${workDir}`}>
+              <button type="button" className="chip" onClick={state.chooseFolder} title={`Working folder: ${workDir} (click to change)`}>
                 <Icon name="folder" size={14} />
                 <span className="chip-path">{workDir.replace(/^\/Users\/[^/]+|^C:\\Users\\[^\\]+/, '~')}</span>
               </button>
@@ -102,7 +103,8 @@ export function App(): ReactElement {
         ) : (
           <Welcome mode={mode} onPick={(text) => setSeed({ text, nonce: Date.now() })} />
         )}
-        {!needsAccount && <Composer mode={mode} running={running} disabled={false} onSend={state.send} onStop={state.stop} seed={seed} dropped={dropped} />}
+        {!needsAccount && <Composer mode={mode} running={running} disabled={false} onSend={state.send} onStop={state.stop} seed={seed} dropped={dropped}
+            folder={workDir ? { path: workDir, chosen: folderChosen } : undefined} onChooseFolder={state.chooseFolder} onClearFolder={state.clearFolder} />}
       </main>
       {settingsOpen && state.settings && <Settings settings={state.settings} status={state.status} account={state.account} connectors={state.connectors} memories={state.memories} onSignOut={state.signOut} onSave={state.saveSettings} onClose={closeSettings} />}
     </div>

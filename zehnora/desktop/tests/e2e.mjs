@@ -143,6 +143,22 @@ try {
   check('plan checklist is shown with progress', (await page.innerText('.plan')).includes('0/3') && (await page.locator('.plan-step.in_progress').count()) === 1);
   await page.screenshot({ path: path.join(evidence, '13-agent-plan.png') });
 
+  const picked = fs.mkdtempSync(path.join(workDir, 'picked-'));
+  await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] }); }, picked);
+  await page.click('.new-chat');
+  await page.click('button[aria-label="Choose working folder"]');
+  await page.waitForSelector('.attachment.folder', { timeout: 10_000 });
+  check('folder button shows the chosen working folder', (await page.getAttribute('.attachment.folder', 'title')) === fs.realpathSync(picked));
+  await page.screenshot({ path: path.join(evidence, '14-work-folder.png') });
+  await send(page, 'list files here please');
+  await page.waitForFunction(() => !document.querySelector('.send.stop'), null, { timeout: 20_000 });
+  const folderPrompt = mock.requests[mock.requests.length - 1].messages[0].content;
+  check('agent is told to work in the chosen folder', folderPrompt.includes(`The user chose the working folder for this task: ${fs.realpathSync(picked)}`));
+  check('commands run in the chosen folder', (await page.innerText('.topbar')).includes(path.basename(picked)));
+  await page.click('.attachment.folder .attachment-remove');
+  await page.waitForFunction(() => !document.querySelector('.attachment.folder'));
+  check('removing the folder chip goes back to the default folder', !(await page.innerText('.topbar')).includes(path.basename(picked)));
+
   const pdf = makePdf(path.join(workDir, 'report.pdf'), ['Quarterly report for Zehnora', 'Revenue grew 40 percent']);
   await app.evaluate(({ dialog }, file) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] }); }, pdf);
   await page.click('button.attach');

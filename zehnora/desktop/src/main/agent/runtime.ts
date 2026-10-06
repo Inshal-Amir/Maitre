@@ -149,7 +149,10 @@ export class Runtime {
       }
 
       const cwd = this.workDir(conversation);
-      const memory = conversation.mode === 'work' ? projectMemory(cwd, conversation.plan) : '';
+      const chosen = conversation.mode === 'work' && conversation.cwdChosen
+        ? `The user chose the working folder for this task: ${cwd}. Work there: do not ask where to create the project. For a new project, create a subfolder inside it if that fits better, and call set_project with this folder or that subfolder before writing files.`
+        : '';
+      const memory = [chosen, conversation.mode === 'work' ? projectMemory(cwd, conversation.plan) : ''].filter(Boolean).join('\n\n');
       const system = systemPrompt(conversation.mode, cwd, this.deps.connectedApps?.() ?? [], memory, settings.defaultWorkDir);
       await this.compact(conversation, message, settings, apiKey, system, schemas, signal);
       if (signal.aborted) {
@@ -258,6 +261,7 @@ export class Runtime {
       },
       setProject: (dir) => {
         conversation.cwd = dir;
+        conversation.cwdChosen = true;
         context.cwd = dir;
         publish();
       },

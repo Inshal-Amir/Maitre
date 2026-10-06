@@ -44,10 +44,10 @@ export function get(id: string): Conversation | null {
   return conversations.get(id) ?? null;
 }
 
-export function create(mode: Mode, cwd?: string): Conversation {
+export function create(mode: Mode, cwd?: string, cwdChosen = false): Conversation {
   loadAll();
   const now = Date.now();
-  const conversation: Conversation = { id: crypto.randomUUID(), mode, title: 'New chat', cwd, createdAt: now, updatedAt: now, messages: [] };
+  const conversation: Conversation = { id: crypto.randomUUID(), mode, title: 'New chat', cwd, cwdChosen, createdAt: now, updatedAt: now, messages: [] };
   conversations.set(conversation.id, conversation);
   return conversation;
 }

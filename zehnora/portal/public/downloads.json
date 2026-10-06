@@ -1,35 +1,35 @@
 {
-  "version": "0.4.0",
+  "version": "0.4.1",
   "released": "2026-10-06",
-  "notes": "- **Work agent that plans first:** asks what you want (with clickable options), lets you choose the project folder, writes a brief and a plan, and keeps its notes in the project's `.zehnora/` folder.\n- **Attach files:** PDF, Word and text or code files with the paperclip or drag and drop.\n- **Memory:** say \"remember…\" and Zehnora keeps it for every new chat; review it in Settings.\n- **Connected apps:** Google (Gmail, Calendar, Drive, Docs, Sheets) and any MCP server.\n- Live streaming of answers and thinking; long chats are summarized automatically.",
-  "page": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/tag/v0.4.0",
+  "notes": "- **Choose the working folder** in Work mode with the folder button next to the paperclip (or the folder chip at the top). Zehnora then works in that folder and does not ask where to create the project; × goes back to the default folder.\n- The window always comes back when you click the Dock icon after closing it (macOS).\n- Earlier in 0.4: a Work agent that plans first and keeps notes in `.zehnora/`, file attachments (PDF, Word, text), memory, connected apps (Google, MCP), live streaming.",
+  "page": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/tag/v0.4.1",
   "files": [
     {
       "id": "windows",
       "os": "Windows",
       "label": "Windows 10 and 11 (64-bit)",
-      "file": "Zehnora-Setup-0.4.0.exe",
-      "size": 113699330,
-      "sha256": "cbe6f982dcd25b8097dd9d914d1c8f4e45a592e79bb8fd4b6e2e508ac497824c",
-      "url": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/download/v0.4.0/Zehnora-Setup-0.4.0.exe"
+      "file": "Zehnora-Setup-0.4.1.exe",
+      "size": 113700297,
+      "sha256": "182e4e16f0802ecf879f0ec57ddab60ad4018fd6af6467a48f4a046ef406acc9",
+      "url": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/download/v0.4.1/Zehnora-Setup-0.4.1.exe"
     },
     {
       "id": "mac-arm64",
       "os": "macOS",
       "label": "Mac with Apple silicon (M1–M4)",
-      "file": "Zehnora-0.4.0-mac-arm64.dmg",
-      "size": 129278637,
-      "sha256": "2e4d83c5123e888b09e914dcd42d9305649b722e389f320b3f5b012b94546542",
-      "url": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/download/v0.4.0/Zehnora-0.4.0-mac-arm64.dmg"
+      "file": "Zehnora-0.4.1-mac-arm64.dmg",
+      "size": 129275646,
+      "sha256": "bcb6884daf78e4694b3c8b69a86a0ecd59f82c12fb51ba35ea5f28c0293e8c48",
+      "url": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/download/v0.4.1/Zehnora-0.4.1-mac-arm64.dmg"
     },
     {
       "id": "mac-x64",
       "os": "macOS",
       "label": "Mac with Intel processor",
-      "file": "Zehnora-0.4.0-mac-x64.dmg",
-      "size": 136274630,
-      "sha256": "1e784565ae3414c36d964d30dcb6a7a7bfcf0aad070d8a5b2918901bb39dbd20",
-      "url": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/download/v0.4.0/Zehnora-0.4.0-mac-x64.dmg"
+      "file": "Zehnora-0.4.1-mac-x64.dmg",
+      "size": 136276403,
+      "sha256": "6ba7a9c1b8c7fd5780f24600d618434eb3e4a054e163d932e78cca92e2eae3bc",
+      "url": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/download/v0.4.1/Zehnora-0.4.1-mac-x64.dmg"
     }
   ]
 }

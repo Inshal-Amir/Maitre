@@ -1,5 +1,3 @@
-- **Work agent that plans first:** asks what you want (with clickable options), lets you choose the project folder, writes a brief and a plan, and keeps its notes in the project's `.zehnora/` folder.
-- **Attach files:** PDF, Word and text or code files with the paperclip or drag and drop.
-- **Memory:** say "remember…" and Zehnora keeps it for every new chat; review it in Settings.
-- **Connected apps:** Google (Gmail, Calendar, Drive, Docs, Sheets) and any MCP server.
-- Live streaming of answers and thinking; long chats are summarized automatically.
+- **Choose the working folder** in Work mode with the folder button next to the paperclip (or the folder chip at the top). Zehnora then works in that folder and does not ask where to create the project; × goes back to the default folder.
+- The window always comes back when you click the Dock icon after closing it (macOS).
+- Earlier in 0.4: a Work agent that plans first and keeps notes in `.zehnora/`, file attachments (PDF, Word, text), memory, connected apps (Google, MCP), live streaming.

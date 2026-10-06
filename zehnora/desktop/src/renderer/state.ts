@@ -55,6 +55,10 @@ export interface AppState {
   remove(id: string): Promise<void>;
   rename(id: string, title: string): Promise<void>;
   changeWorkDir(): Promise<void>;
+  /** Folder picked for the next new Work task (before it exists). */
+  pendingFolder: string | null;
+  chooseFolder(): Promise<void>;
+  clearFolder(): Promise<void>;
   saveSettings(settings: Parameters<ZehnoraApi['saveSettings']>[0]): Promise<void>;
   refreshStatus(): Promise<void>;
 }
@@ -69,6 +73,7 @@ export function useAppState(): AppState {
   const [processes, setProcesses] = useState<ProcessInfo[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<ModelStatus | null>(null);
+  const [pendingFolder, setPendingFolder] = useState<string | null>(null);
   const [account, setAccount] = useState<AccountStatus | null>(null);
   const [connectors, setConnectors] = useState<ConnectorStatus[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -155,18 +160,20 @@ export function useAppState(): AppState {
   }, []);
 
   const newChat = useCallback(async (target?: Mode) => {
-    const conversation = await api().createConversation(target ?? mode);
+    const conversation = await api().createConversation(target ?? mode, (target ?? mode) === 'work' ? pendingFolder ?? undefined : undefined);
     setActive(conversation);
-  }, [mode]);
+    setPendingFolder(null);
+  }, [mode, pendingFolder]);
 
   const send = useCallback(async (text: string, attachments: Attachment[] = []) => {
     let conversation = active;
     if (!conversation) {
-      conversation = await api().createConversation(mode);
+      conversation = await api().createConversation(mode, mode === 'work' ? pendingFolder ?? undefined : undefined);
       setActive(conversation);
+      setPendingFolder(null);
     }
     await api().send(conversation.id, text, attachments.map((file) => file.id));
-  }, [active, mode]);
+  }, [active, mode, pendingFolder]);
 
   const stop = useCallback(() => {
     if (active) api().stop(active.id);
@@ -182,11 +189,27 @@ export function useAppState(): AppState {
     await api().renameConversation(id, title);
   }, []);
 
-  const changeWorkDir = useCallback(async () => {
-    if (!active) return;
-    const dir = await api().setWorkDir(active.id);
-    if (dir) setActive((current) => (current ? { ...current, cwd: dir } : current));
+  const chooseFolder = useCallback(async () => {
+    const current = active?.mode === 'work' ? active.cwd : pendingFolder ?? undefined;
+    const dir = await api().chooseDirectory(current);
+    if (!dir) return;
+    if (active && active.mode === 'work') {
+      const used = await api().setConversationFolder(active.id, dir);
+      setActive((c) => (c ? { ...c, cwd: used, cwdChosen: true } : c));
+    } else {
+      setPendingFolder(dir);
+    }
+  }, [active, pendingFolder]);
+
+  const clearFolder = useCallback(async () => {
+    if (active && active.mode === 'work') {
+      const used = await api().setConversationFolder(active.id, null);
+      setActive((c) => (c ? { ...c, cwd: used, cwdChosen: false } : c));
+    }
+    setPendingFolder(null);
   }, [active]);
+
+  const changeWorkDir = chooseFolder;
 
   const saveSettings = useCallback(async (patch: Parameters<ZehnoraApi['saveSettings']>[0]) => {
     setSettings(await api().saveSettings(patch));
@@ -200,5 +223,5 @@ export function useAppState(): AppState {
 
   const visible = useMemo(() => conversations.filter((entry) => entry.mode === mode && entry.title !== 'New chat'), [conversations, mode]);
 
-  return { mode, conversations: visible, active, running, approvals, questions, processes, settings, status, account, connectors, memories, waiting, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, saveSettings, refreshStatus };
+  return { mode, conversations: visible, active, running, approvals, questions, processes, settings, status, account, connectors, memories, waiting, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, pendingFolder, chooseFolder, clearFolder, saveSettings, refreshStatus };
 }

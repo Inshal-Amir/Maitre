@@ -61,6 +61,19 @@ describe('Work agent: understand, workspace, plan, memory', () => {
     await model.close();
   });
 
+  it('tells the agent to work in a folder the user picked instead of asking', async () => {
+    const picked = fs.mkdtempSync(path.join(root, 'picked-'));
+    const model = await startMockModel(() => ({ content: 'ok' }));
+    const settings = { apiBase: model.url, model: 'zehnora-coder', approvalPolicy: 'never', contextTokens: 60000, maxOutputTokens: 1000, memoryEnabled: false, defaultWorkDir: root } as Settings;
+    const runtime = new Runtime({ settings: () => settings, apiKey: () => model.apiKey, save: () => undefined, emit: () => undefined });
+    const conversation: Conversation = { id: '00000000-0000-4000-8000-00000000000f', mode: 'work', title: 'New chat', cwd: picked, cwdChosen: true, createdAt: 0, updatedAt: 0, messages: [] };
+    await runtime.send(conversation, 'build a website');
+    const system = model.requests[0].messages[0].content ?? '';
+    expect(system).toContain(`The user chose the working folder for this task: ${picked}`);
+    expect(system).toContain(`Working folder: ${picked}`);
+    await model.close();
+  });
+
   it('stops cleanly while waiting for an answer', async () => {
     const model = await startMockModel(() => call('ask_user', { questions: [{ question: 'Which stack?', options: ['React', 'Vue'] }] }));
     const settings = { apiBase: model.url, model: 'zehnora-coder', approvalPolicy: 'never', contextTokens: 60000, maxOutputTokens: 1000, memoryEnabled: false, defaultWorkDir: root } as Settings;

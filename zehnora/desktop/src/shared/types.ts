@@ -97,6 +97,8 @@ export interface ConversationSummary {
   /** Messages before this index were summarized to fit the context window. */
   compactedAt?: number;
   plan?: Plan;
+  /** The user picked the working folder for this task (the agent must not ask where to work). */
+  cwdChosen?: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -219,10 +221,12 @@ export type AgentEvent =
 export interface ZehnoraApi {
   listConversations(): Promise<ConversationSummary[]>;
   getConversation(id: string): Promise<Conversation | null>;
-  createConversation(mode: Mode): Promise<Conversation>;
+  createConversation(mode: Mode, cwd?: string): Promise<Conversation>;
   deleteConversation(id: string): Promise<void>;
   renameConversation(id: string, title: string): Promise<void>;
   setWorkDir(id: string): Promise<string | null>;
+  /** Sets (or with null resets to the default) the working folder of a task; returns the folder now in use. */
+  setConversationFolder(id: string, dir: string | null): Promise<string>;
   send(id: string, text: string, attachmentIds?: string[]): Promise<void>;
   attachFiles(paths?: string[]): Promise<AttachmentResult[]>;
   pathForFile(file: File): string;

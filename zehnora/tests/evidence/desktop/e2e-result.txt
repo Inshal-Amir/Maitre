@@ -22,6 +22,10 @@ PASS approved command runs
 PASS agent asks questions with clickable options first
 PASS answers go back to the agent
 PASS plan checklist is shown with progress
+PASS folder button shows the chosen working folder
+PASS agent is told to work in the chosen folder
+PASS commands run in the chosen folder
+PASS removing the folder chip goes back to the default folder
 PASS paperclip attaches a PDF and shows its pages
 PASS PDF text reaches the model with the message
 PASS sent message shows the file chip
@@ -31,4 +35,4 @@ PASS connected apps list Google with its services
 PASS custom MCP server added from settings connects (3 tools)
 PASS agent uses the MCP tool in Chat mode
 PASS conversations are saved to disk
-33/33 passed on darwin 2026-09-29T14:43:38.874Z
+37/37 passed on darwin 2026-10-06T10:49:59.468Z

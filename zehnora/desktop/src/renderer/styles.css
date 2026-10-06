@@ -371,3 +371,7 @@ code, pre { font-family: var(--mono); }
 
 .option.path { font-family: var(--mono); font-size: 12px; }
 .question .browse { margin: 0 0 6px; }
+
+.attach.on { color: var(--work); background: color-mix(in srgb, var(--work) 12%, transparent); }
+.attachment.folder .folder-icon { background: var(--work); }
+.attach + .attach { margin-left: -6px; }

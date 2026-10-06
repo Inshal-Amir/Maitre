@@ -4,10 +4,11 @@ import type { AgentEvent, ZehnoraApi } from '../shared/types';
 const api: ZehnoraApi = {
   listConversations: () => ipcRenderer.invoke('conversations:list'),
   getConversation: (id) => ipcRenderer.invoke('conversations:get', id),
-  createConversation: (mode) => ipcRenderer.invoke('conversations:create', mode),
+  createConversation: (mode, cwd) => ipcRenderer.invoke('conversations:create', mode, cwd),
   deleteConversation: (id) => ipcRenderer.invoke('conversations:delete', id),
   renameConversation: (id, title) => ipcRenderer.invoke('conversations:rename', id, title),
   setWorkDir: (id) => ipcRenderer.invoke('conversations:set-cwd', id),
+  setConversationFolder: (id, dir) => ipcRenderer.invoke('conversations:set-folder', id, dir),
   send: (id, text, attachmentIds) => ipcRenderer.invoke('agent:send', id, text, attachmentIds ?? []),
   attachFiles: (paths) => ipcRenderer.invoke('attachments:add', paths ?? []),
   pathForFile: (file) => webUtils.getPathForFile(file),

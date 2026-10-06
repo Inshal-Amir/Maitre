@@ -96,6 +96,14 @@ function requireConversation(id: string): Conversation {
   return conversation;
 }
 
+/** A folder the user picked: must exist, be a folder, and not be a whole disk. */
+function validFolder(dir: string): string {
+  const real = fs.realpathSync(path.resolve(dir));
+  if (!fs.statSync(real).isDirectory()) throw new Error(`${real} is not a folder.`);
+  if (real === path.parse(real).root) throw new Error('Choose a folder, not a whole disk.');
+  return real;
+}
+
 async function chooseDirectory(current?: string): Promise<string | null> {
   if (!mainWindow) return null;
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -126,7 +134,18 @@ function registerIpc(): void {
     const conversation = store.get(id);
     return conversation ? recoverInterrupted(conversation) : null;
   });
-  handle('conversations:create', (mode: Mode) => store.create(mode, mode === 'work' ? getSettings().defaultWorkDir : undefined));
+  handle('conversations:create', (mode: Mode, cwd?: string) => {
+    if (mode !== 'work') return store.create(mode);
+    return cwd ? store.create(mode, validFolder(cwd), true) : store.create(mode, getSettings().defaultWorkDir);
+  });
+  handle('conversations:set-folder', (id: string, dir: string | null) => {
+    const conversation = requireConversation(id);
+    conversation.cwd = dir ? validFolder(dir) : getSettings().defaultWorkDir;
+    conversation.cwdChosen = Boolean(dir);
+    store.save(conversation);
+    emit({ type: 'conversation', summary: store.summarize(conversation) });
+    return conversation.cwd;
+  });
   handle('conversations:delete', (id: string) => {
     runtime.stop(id);
     runtime.approvals.forget(id);
@@ -143,6 +162,7 @@ function registerIpc(): void {
     const dir = await chooseDirectory(conversation.cwd);
     if (!dir) return null;
     conversation.cwd = dir;
+    conversation.cwdChosen = true;
     store.save(conversation);
     emit({ type: 'conversation', summary: store.summarize(conversation) });
     return dir;

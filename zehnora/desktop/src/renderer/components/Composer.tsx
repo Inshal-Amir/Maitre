@@ -15,8 +15,14 @@ export function describeAttachment(file: Attachment): string {
   return [file.kind === 'pdf' ? `PDF${file.pages ? ` · ${file.pages} pages` : ''}` : file.kind === 'docx' ? 'Word' : 'Text', formatSize(file.size)].join(' · ');
 }
 
-export function Composer({ mode, running, disabled, onSend, onStop, seed, dropped }: {
+const shortPath = (dir: string): string => dir.replace(/^\/Users\/[^/]+|^C:\\Users\\[^\\]+/i, '~');
+
+export function Composer({ mode, running, disabled, onSend, onStop, seed, dropped, folder, onChooseFolder, onClearFolder }: {
   mode: Mode;
+  /** Work mode: the task's working folder and whether the user picked it. */
+  folder?: { path: string; chosen: boolean };
+  onChooseFolder?(): void;
+  onClearFolder?(): void;
   running: boolean;
   disabled: boolean;
   dropped: { paths: string[]; nonce: number } | null;
@@ -88,8 +94,17 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
 
   return (
     <div className="composer-wrap">
-      {(files.length > 0 || errors.length > 0 || reading) && (
+      {(files.length > 0 || errors.length > 0 || reading || (mode === 'work' && folder?.chosen)) && (
         <div className="attachments">
+          {mode === 'work' && folder?.chosen && (
+            <div className="attachment folder" title={folder.path}>
+              <span className="attachment-icon folder-icon"><Icon name="folder" size={16} /></span>
+              <span className="attachment-text"><b>{folder.path.split(/[\\/]/).filter(Boolean).pop() ?? folder.path}</b><small>Working folder · {shortPath(folder.path)}</small></span>
+              <button type="button" className="attachment-remove" aria-label="Use the default folder" onClick={onClearFolder}>
+                <Icon name="x" size={13} />
+              </button>
+            </div>
+          )}
           {files.map((file) => (
             <div key={file.id} className="attachment" title={file.path}>
               <span className="attachment-icon">{file.kind === 'pdf' ? 'PDF' : file.kind === 'docx' ? 'DOC' : 'TXT'}</span>
@@ -107,6 +122,12 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
         <button type="button" className="attach" onClick={() => attach([])} aria-label="Attach files" title="Attach PDF, Word or text files" disabled={running}>
           <Icon name="clip" size={18} />
         </button>
+        {mode === 'work' && (
+          <button type="button" className={`attach ${folder?.chosen ? 'on' : ''}`} onClick={onChooseFolder} aria-label="Choose working folder"
+                  title={folder ? `Working folder: ${folder.path}\nClick to choose another folder` : 'Choose the folder to work in'}>
+            <Icon name="folder" size={18} />
+          </button>
+        )}
         <textarea
           ref={area}
           rows={1}
