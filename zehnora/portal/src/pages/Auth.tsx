@@ -78,7 +78,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             ))}
           </div>
         </div>
-        <div className="foot">{brand.productName} · api and console at dubg.dev</div>
+        <div className="foot">{brand.productName} · <Link to="/download" className="hero-link">Get the desktop app for Windows and Mac →</Link></div>
       </aside>
       <main className="auth-side">
         <form className="auth-card" onSubmit={submit}>

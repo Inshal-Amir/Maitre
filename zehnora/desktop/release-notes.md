@@ -1,0 +1,5 @@
+- **Work agent that plans first:** asks what you want (with clickable options), lets you choose the project folder, writes a brief and a plan, and keeps its notes in the project's `.zehnora/` folder.
+- **Attach files:** PDF, Word and text or code files with the paperclip or drag and drop.
+- **Memory:** say "remember…" and Zehnora keeps it for every new chat; review it in Settings.
+- **Connected apps:** Google (Gmail, Calendar, Drive, Docs, Sheets) and any MCP server.
+- Live streaming of answers and thinking; long chats are summarized automatically.

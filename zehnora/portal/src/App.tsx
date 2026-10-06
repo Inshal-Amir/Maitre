@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, BookOpen, Boxes, Coins, CreditCard, KeyRound, LogOut, MessageSquare, Server, Users, type LucideIcon } from 'lucide-react';
+import { BarChart3, BookOpen, Boxes, Coins, CreditCard, Download as DownloadIcon, KeyRound, LogOut, MessageSquare, Server, Users, type LucideIcon } from 'lucide-react';
 import { ThemeSwitch } from './components/ui';
 import brand from '@brand/brand.json';
 import { api, ApiError, type Me } from './api';
@@ -14,6 +14,7 @@ import AdminUsers from './pages/AdminUsers';
 import AdminUser from './pages/AdminUser';
 import AdminSystem from './pages/AdminSystem';
 import Billing from './pages/Billing';
+import Download from './pages/Download';
 
 interface Session { me: Me | null; refresh: () => Promise<void>; setMe: (m: Me | null) => void }
 const SessionContext = createContext<Session>({ me: null, refresh: async () => {}, setMe: () => {} });
@@ -38,6 +39,7 @@ export default function App() {
   useEffect(() => { refresh(); }, [refresh]);
 
   if (loading) return <div className="boot"><span className="mark">{brand.productName[0]}</span></div>;
+  if (window.location.pathname === '/download') return <SessionContext.Provider value={{ me, refresh, setMe }}><Download /></SessionContext.Provider>;
 
   return (
     <SessionContext.Provider value={{ me, refresh, setMe }}>
@@ -76,6 +78,7 @@ function Shell() {
           <NavItem to="/docs" icon={BookOpen} label="Quickstart" />
           <div className="nav-group">Account</div>
           <NavItem to="/billing" icon={CreditCard} label="Billing" />
+          <NavItem to="/download" icon={DownloadIcon} label="Desktop app" />
           {isAdmin && <div className="nav-group">Admin</div>}
           {isAdmin && <NavItem to="/admin/users" icon={Users} label="Users & credits" />}
           {isAdmin && <NavItem to="/admin/system" icon={Server} label="Models & requests" />}
