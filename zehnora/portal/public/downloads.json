@@ -1,35 +1,35 @@
 {
-  "version": "0.4.1",
-  "released": "2026-10-06",
-  "notes": "- **Choose the working folder** in Work mode with the folder button next to the paperclip (or the folder chip at the top). Zehnora then works in that folder and does not ask where to create the project; × goes back to the default folder.\n- The window always comes back when you click the Dock icon after closing it (macOS).\n- Earlier in 0.4: a Work agent that plans first and keeps notes in `.zehnora/`, file attachments (PDF, Word, text), memory, connected apps (Google, MCP), live streaming.",
-  "page": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/tag/v0.4.1",
+  "version": "0.5.0",
+  "released": "2026-10-07",
+  "notes": "- **Zehnora is now Maitre, by Menthiq.** The website is https://maitre.menthiq.com and the API is https://api.menthiq.com/v1. Your account, credits, chats and settings stay as they are; you may need to sign in once more.\n- **Update needed:** older versions used the retired dubg.dev addresses and can no longer connect. Install this version over the old one.\n- Earlier in 0.4: choose the working folder in Work mode, a Work agent that plans first and keeps notes in `.zehnora/`, file attachments (PDF, Word, text), memory, connected apps (Google, MCP), live streaming.",
+  "page": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/tag/v0.5.0",
   "files": [
     {
       "id": "windows",
       "os": "Windows",
       "label": "Windows 10 and 11 (64-bit)",
-      "file": "Zehnora-Setup-0.4.1.exe",
-      "size": 113700297,
-      "sha256": "182e4e16f0802ecf879f0ec57ddab60ad4018fd6af6467a48f4a046ef406acc9",
-      "url": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/download/v0.4.1/Zehnora-Setup-0.4.1.exe"
+      "file": "Maitre-Setup-0.5.0.exe",
+      "size": 113700720,
+      "sha256": "3c4175646d5de6daf8fe5b0979a54ea25fc1b1e2d39ddc099b9f3ec426346873",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.5.0/Maitre-Setup-0.5.0.exe"
     },
     {
       "id": "mac-arm64",
       "os": "macOS",
       "label": "Mac with Apple silicon (M1–M4)",
-      "file": "Zehnora-0.4.1-mac-arm64.dmg",
-      "size": 129275646,
-      "sha256": "bcb6884daf78e4694b3c8b69a86a0ecd59f82c12fb51ba35ea5f28c0293e8c48",
-      "url": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/download/v0.4.1/Zehnora-0.4.1-mac-arm64.dmg"
+      "file": "Maitre-0.5.0-mac-arm64.dmg",
+      "size": 129264762,
+      "sha256": "66fadabf9931379610de4a62899cb158e5538bfd11b47c82aa4c9de2a86c652a",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.5.0/Maitre-0.5.0-mac-arm64.dmg"
     },
     {
       "id": "mac-x64",
       "os": "macOS",
       "label": "Mac with Intel processor",
-      "file": "Zehnora-0.4.1-mac-x64.dmg",
-      "size": 136276403,
-      "sha256": "6ba7a9c1b8c7fd5780f24600d618434eb3e4a054e163d932e78cca92e2eae3bc",
-      "url": "https://github.com/Inshal-Amir/Zehnora-Desktop/releases/download/v0.4.1/Zehnora-0.4.1-mac-x64.dmg"
+      "file": "Maitre-0.5.0-mac-x64.dmg",
+      "size": 136254811,
+      "sha256": "09fd928787d0d0bd34de97c145d86ee2eee9c158ff4f948d69b36cfea0597676",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.5.0/Maitre-0.5.0-mac-x64.dmg"
     }
   ]
 }

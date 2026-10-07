@@ -1,7 +1,7 @@
 {
   "name": "zehnora-desktop",
   "productName": "Maitre",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
   "description": "Zehnora Desktop: Chat and Work agent app connected to the Zehnora model API",
   "main": "dist/main/index.js",

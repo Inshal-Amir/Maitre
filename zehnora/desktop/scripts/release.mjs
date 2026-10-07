@@ -1,7 +1,7 @@
 // Publishes the desktop installers and the download manifest the console's /download page reads.
 //   node scripts/release.mjs             write ../portal/public/downloads.json from release/ (dry run)
 //   node scripts/release.mjs --publish   also create the GitHub release and upload the installers (needs `gh auth login`)
-// Repo for the public releases: ZEHNORA_RELEASE_REPO (default Inshal-Amir/Zehnora-Desktop). Notes: ZEHNORA_RELEASE_NOTES or release-notes.md.
+// Repo for the public releases: ZEHNORA_RELEASE_REPO (default Inshal-Amir/Maitre-Desktop). Notes: ZEHNORA_RELEASE_NOTES or release-notes.md.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { version } = JSON.parse(fs.readFileSync(path.join(desktop, 'package.json'), 'utf8'));
-const repo = process.env.ZEHNORA_RELEASE_REPO ?? 'Inshal-Amir/Zehnora-Desktop';
+const repo = process.env.ZEHNORA_RELEASE_REPO ?? 'Inshal-Amir/Maitre-Desktop';
 const tag = `v${version}`;
 const publish = process.argv.includes('--publish');
 

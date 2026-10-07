@@ -1,3 +1,3 @@
-- **Choose the working folder** in Work mode with the folder button next to the paperclip (or the folder chip at the top). Zehnora then works in that folder and does not ask where to create the project; × goes back to the default folder.
-- The window always comes back when you click the Dock icon after closing it (macOS).
-- Earlier in 0.4: a Work agent that plans first and keeps notes in `.zehnora/`, file attachments (PDF, Word, text), memory, connected apps (Google, MCP), live streaming.
+- **Zehnora is now Maitre, by Menthiq.** The website is https://maitre.menthiq.com and the API is https://api.menthiq.com/v1. Your account, credits, chats and settings stay as they are; you may need to sign in once more.
+- **Update needed:** older versions used the retired dubg.dev addresses and can no longer connect. Install this version over the old one.
+- Earlier in 0.4: choose the working folder in Work mode, a Work agent that plans first and keeps notes in `.zehnora/`, file attachments (PDF, Word, text), memory, connected apps (Google, MCP), live streaming.

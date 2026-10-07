@@ -1,10 +1,10 @@
-# Zehnora Desktop
+# Maitre Desktop (by Menthiq)
 
-Electron app (Mac and Windows) with its own UI and agent runtime, connected to the Zehnora model API (`https://api.dubg.dev/v1`, model `zehnora-coder`). No LibreChat, MongoDB or Python needed on the client.
+Electron app (Mac and Windows) with its own UI and agent runtime, connected to the Maitre model API (`https://api.menthiq.com/v1`, model `zehnora-coder`). No LibreChat, MongoDB or Python needed on the client.
 
 ## Accounts
 
-First launch shows **Create account / Sign in**. The app calls the portal API (`https://console.dubg.dev/platform/v1`: register or login, then `POST /keys` named after the computer) and stores the new key and the session in the OS keychain. Settings shows the account, its credits, and Sign out; "I already have an API key" still allows pasting a key. Tester instructions: `TESTERS.md`.
+First launch shows **Create account / Sign in**. The app calls the portal API (`https://maitre.menthiq.com/platform/v1`: register or login, then `POST /keys` named after the computer) and stores the new key and the session in the OS keychain. Settings shows the account, its credits, and Sign out; "I already have an API key" still allows pasting a key. Tester instructions: `TESTERS.md`.
 
 ## Connected apps (MCP)
 
@@ -17,7 +17,7 @@ First launch shows **Create account / Sign in**. The app calls the portal API (`
 | Purpose | Questions, writing, research | Doing things on the computer |
 | Tools | `web_search`, `fetch_url` (public internet only), `github_search`, `github_repo`, `current_time` | Everything in Chat plus files (`read_file`, `write_file`, `edit_file`, `list_directory`, `find_files`, `search_text`, `create_directory`, `move_path`, `delete_path`), shell (`run_command`), background processes (`start_process`, `process_output`, `stop_process`, `list_processes`), `system_info`, `open`, `check_web_page` |
 | Step limit | 8 model rounds | 60 model rounds (then "continue") |
-| Folder | none | per-task working folder (default `~/Zehnora`) |
+| Folder | none | per-task working folder (default `~/Maitre`, or `~/Zehnora` when it exists) |
 
 Git, GitHub (`gh`), Docker, databases and package managers are used through `run_command` / `start_process` with the user's login-shell `PATH`.
 
@@ -44,7 +44,7 @@ Settings → approval policy: ask for risky (default), ask for every change, or 
 
 ## Data
 
-`<userData>` = `~/Library/Application Support/Zehnora` (Mac) or `%APPDATA%\Zehnora` (Windows): `settings.json`, `secrets/*.bin` (API key and GitHub token encrypted with the OS keychain via `safeStorage`), `conversations/*.json`, `backups/`, `screenshots/`.
+`<userData>` = `~/Library/Application Support/Maitre` (Mac) or `%APPDATA%\Maitre` (an existing `Zehnora` folder from older versions is kept and used) (Windows): `settings.json`, `secrets/*.bin` (API key and GitHub token encrypted with the OS keychain via `safeStorage`), `conversations/*.json`, `backups/`, `screenshots/`.
 
 ## Develop
 
