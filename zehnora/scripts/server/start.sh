@@ -48,7 +48,11 @@ if [ "${1:-}" = "--with-tunnel" ]; then
   # Accept the whole install command pasted from the dashboard: keep only the token.
   if [ -s "$tok" ] && grep -q ' ' "$tok"; then t="$(grep -o 'eyJ[A-Za-z0-9_=-]*' "$tok" | head -1)"; [ -n "$t" ] && printf '%s' "$t" >"$tok"; fi
   [ -s "$tok" ] || die "missing tunnel token: paste it into $tok"
-  dc --profile tunnel up -d --remove-orphans cloudflared; say "tunnel connector started (menthiq.com)"
+  dc --profile tunnel up -d --remove-orphans cloudflared
+  # The token is a mounted secret: a new token does not change the compose config, so restart to load it.
+  stamp="$SECRETS/.cloudflared_token.sha"; sum="$(sha256sum "$tok" | cut -d' ' -f1)"
+  if [ "$(cat "$stamp" 2>/dev/null)" != "$sum" ]; then docker restart zehnora-cloudflared-1 >/dev/null; printf '%s' "$sum" >"$stamp"; say "tunnel token changed: connector restarted"; fi
+  say "tunnel connector started (menthiq.com)"
 fi
 say "model deployment: $ZEHNORA_MODEL_REPO @ ${ZEHNORA_MODEL_REVISION:0:12} ${ZEHNORA_MODEL_FILE:-} ($ZEHNORA_ENGINE, ctx ${ZEHNORA_MAX_MODEL_LEN:-})"
 docker exec zehnora-model-1 nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader || true
