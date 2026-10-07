@@ -7,9 +7,10 @@ say() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 die() { say "ERROR: $*"; exit 1; }
 [ -f "$SECRETS/server.env" ] || die "missing $SECRETS/server.env (copy zehnora/infra/server/server.env.example and fill it in)"
 set -a; . "$SECRETS/server.env"; set +a
-[ -e "$SECRETS/cloudflared_token_menthiq" ] || { install -m 600 /dev/null "$SECRETS/cloudflared_token_menthiq" 2>/dev/null || true; }
 export ZEHNORA_HOST_UID="${ZEHNORA_HOST_UID:-$(id -u)}" ZEHNORA_HOST_GID="${ZEHNORA_HOST_GID:-$(id -g)}"
 export ZEHNORA_REPO_DIR="$REPO"
+# Empty placeholder so compose can parse; owned by the host user (the deployer runs as root) so it can be edited.
+[ -e "$SECRETS/cloudflared_token_menthiq" ] || { install -m 600 -o "$ZEHNORA_HOST_UID" -g "$ZEHNORA_HOST_GID" /dev/null "$SECRETS/cloudflared_token_menthiq" 2>/dev/null || true; }
 export COMPANY_DOMAIN="${COMPANY_DOMAIN:-menthiq.com}"
 export CONSOLE_HOST="${CONSOLE_HOST:-maitre.$COMPANY_DOMAIN}" API_HOST="${API_HOST:-api.$COMPANY_DOMAIN}"
 ZEHNORA_ENGINE="${ZEHNORA_ENGINE:-llamacpp}"
