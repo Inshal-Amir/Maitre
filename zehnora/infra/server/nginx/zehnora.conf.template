@@ -1,6 +1,6 @@
 # Maitre public routing (behind the Cloudflare Tunnel; TLS terminates at Cloudflare's edge).
-# ${CONSOLE_HOST} (and the old console.${OWNER_DOMAIN}): portal static files + /platform/v1 (same origin, cookie sessions)
-# ${API_HOST} (and the old api.${OWNER_DOMAIN}):         ONLY /v1/models and /v1/chat/completions (credit-enforcing platform layer)
+# ${CONSOLE_HOST}: portal static files + /platform/v1 (same origin, cookie sessions)
+# ${API_HOST}:     ONLY /v1/models and /v1/chat/completions (credit-enforcing platform layer)
 # ${COMPANY_DOMAIN}: redirects to the console until the company site exists
 # Everything else (LiteLLM, vLLM, databases, debug/health internals, desktop tools) is not routed.
 
@@ -20,7 +20,7 @@ server {
 
 server {
     listen 8080;
-    server_name ${CONSOLE_HOST} console.${OWNER_DOMAIN};
+    server_name ${CONSOLE_HOST};
     client_max_body_size 1m;
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy same-origin always;
@@ -41,7 +41,7 @@ server {
 
 server {
     listen 8080;
-    server_name ${API_HOST} api.${OWNER_DOMAIN};
+    server_name ${API_HOST};
     client_max_body_size 4m;
 
     location = /v1/models {

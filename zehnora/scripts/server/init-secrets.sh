@@ -6,7 +6,7 @@ S="$REPO/.server-secrets"; umask 077; mkdir -p "$S"
 gen() { [ -s "$S/$1" ] || openssl rand -hex 24 >"$S/$1"; }
 gen pg_superuser_password; gen pg_platform_password; gen pg_litellm_password; gen vllm_api_key
 [ -s "$S/litellm_master_key" ] || echo "sk-$(openssl rand -hex 24)" >"$S/litellm_master_key"
-[ -s "$S/cloudflared_token" ] || echo "REPLACE-WITH-TUNNEL-TOKEN" >"$S/cloudflared_token"
+[ -e "$S/cloudflared_token_menthiq" ] || install -m 600 /dev/null "$S/cloudflared_token_menthiq"
 [ -f "$S/server.env" ] || cp "$REPO/zehnora/infra/server/server.env.example" "$S/server.env"
 if [ ! -s "$S/platform.env" ]; then
   cat >"$S/platform.env" <<ENV
@@ -15,8 +15,8 @@ ZEHNORA_LITELLM_MASTER_KEY=$(cat "$S/litellm_master_key")
 ZEHNORA_KEY_HMAC_SECRET=$(openssl rand -hex 32)
 ZEHNORA_SESSION_SECRET=$(openssl rand -hex 32)
 ZEHNORA_CORS_ORIGINS=[]
-ZEHNORA_PUBLIC_API_BASE=https://api.<OWNER_DOMAIN>/v1
+ZEHNORA_PUBLIC_API_BASE=https://api.menthiq.com/v1
 ZEHNORA_PLAYGROUND_GATEWAY_KEY=
 ENV
 fi
-echo "Secrets in $S (mode 600). Edit server.env and set OWNER_DOMAIN + model settings; put the tunnel token in cloudflared_token."
+echo "Secrets in $S (mode 600). Edit server.env and set the model settings; put the tunnel token in cloudflared_token_menthiq."
