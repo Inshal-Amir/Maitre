@@ -7,6 +7,7 @@ say() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 die() { say "ERROR: $*"; exit 1; }
 [ -f "$SECRETS/server.env" ] || die "missing $SECRETS/server.env (copy zehnora/infra/server/server.env.example and fill it in)"
 set -a; . "$SECRETS/server.env"; set +a
+[ -e "$SECRETS/cloudflared_token_menthiq" ] || { install -m 600 /dev/null "$SECRETS/cloudflared_token_menthiq" 2>/dev/null || true; }
 export ZEHNORA_HOST_UID="${ZEHNORA_HOST_UID:-$(id -u)}" ZEHNORA_HOST_GID="${ZEHNORA_HOST_GID:-$(id -g)}"
 export ZEHNORA_REPO_DIR="$REPO"
 export COMPANY_DOMAIN="${COMPANY_DOMAIN:-menthiq.com}"

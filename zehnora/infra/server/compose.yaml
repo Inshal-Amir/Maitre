@@ -101,6 +101,17 @@ services:
     secrets: [cloudflared_token]
     networks: [edge]
 
+  cloudflared-menthiq:
+    <<: *restart
+    image: cloudflare/cloudflared:2026.9.1
+    profiles: [tunnel]      # menthiq.com tunnel (second Cloudflare account); started with the first one when its token file is filled
+    depends_on: [nginx]
+    # Runs as the host user that owns .server-secrets (mode 600) so it can read the token file.
+    user: "${ZEHNORA_HOST_UID:-1000}:${ZEHNORA_HOST_GID:-1000}"
+    command: tunnel --no-autoupdate run --token-file /run/secrets/cloudflared_token_menthiq
+    secrets: [cloudflared_token_menthiq]
+    networks: [edge]
+
   guard:
     <<: *restart
     build: { context: ../guard, dockerfile: Dockerfile }
@@ -152,3 +163,4 @@ secrets:
   litellm_master_key: { file: ../../../.server-secrets/litellm_master_key }
   vllm_api_key: { file: ../../../.server-secrets/vllm_api_key }
   cloudflared_token: { file: ../../../.server-secrets/cloudflared_token }
+  cloudflared_token_menthiq: { file: ../../../.server-secrets/cloudflared_token_menthiq }

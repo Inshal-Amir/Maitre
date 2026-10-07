@@ -43,7 +43,10 @@ wait_healthy model
 dc up -d litellm; wait_healthy litellm
 dc up -d platform-api; wait_healthy platform-api
 dc up -d nginx
-[ "${1:-}" = "--with-tunnel" ] && { dc --profile tunnel up -d cloudflared; say "tunnel connector started"; }
+if [ "${1:-}" = "--with-tunnel" ]; then
+  tunnels=(cloudflared); [ -s "$SECRETS/cloudflared_token_menthiq" ] && tunnels+=(cloudflared-menthiq)
+  dc --profile tunnel up -d "${tunnels[@]}"; say "tunnel connectors started: ${tunnels[*]}"
+fi
 say "model deployment: $ZEHNORA_MODEL_REPO @ ${ZEHNORA_MODEL_REVISION:0:12} ${ZEHNORA_MODEL_FILE:-} ($ZEHNORA_ENGINE, ctx ${ZEHNORA_MAX_MODEL_LEN:-})"
 docker exec zehnora-model-1 nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader || true
 say "local check: curl -s -H 'Host: $API_HOST' http://127.0.0.1:8080/v1/models"
