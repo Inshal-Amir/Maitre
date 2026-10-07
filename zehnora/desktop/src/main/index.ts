@@ -15,8 +15,10 @@ import { extractDocument } from './documents';
 import { clearMemories, deleteMemory, listMemories, watchMemories } from './memory';
 import * as store from './store';
 
+app.setName('Maitre');
+const legacyUserData = path.join(app.getPath('appData'), 'Zehnora');
 if (process.env.ZEHNORA_USER_DATA) app.setPath('userData', process.env.ZEHNORA_USER_DATA);
-app.setName('Zehnora');
+else if (!fs.existsSync(app.getPath('userData')) && fs.existsSync(legacyUserData)) app.setPath('userData', legacyUserData);
 
 const RENDERER_DEV_URL = process.env.ZEHNORA_RENDERER_URL;
 const RENDERER_FILE = path.join(__dirname, '../renderer/index.html');
@@ -121,7 +123,7 @@ async function modelStatus(): Promise<ModelStatus> {
   const { status, models } = await checkModel(apiBase, key);
   if (status === 200) return { state: 'online', detail: models.includes(model) ? model : `${model} not listed (${models.join(', ') || 'no models'})` };
   if (status === 401 || status === 403) return { state: 'unauthorized', detail: 'The API key was rejected' };
-  if (status === 530 || status === 502 || status === 503) return { state: 'offline', detail: 'The Zehnora server is offline right now' };
+  if (status === 530 || status === 502 || status === 503) return { state: 'offline', detail: 'The Maitre server is offline right now' };
   return { state: 'offline', detail: status ? `HTTP ${status}` : 'Cannot reach the model API' };
 }
 
@@ -216,7 +218,7 @@ function createWindow(): void {
     height: 860,
     minWidth: 760,
     minHeight: 520,
-    title: 'Zehnora',
+    title: 'Maitre',
     show: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#161616' : '#ffffff',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',

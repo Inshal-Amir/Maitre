@@ -23,7 +23,7 @@ export function Welcome({ mode, onPick }: { mode: Mode; onPick(prompt: string): 
     <div className="welcome">
       <div className="welcome-mark">Z</div>
       <h1>{mode === 'chat' ? 'How can I help today?' : 'What should we build?'}</h1>
-      <p>{mode === 'chat' ? 'Ask anything. Zehnora can search the web and GitHub for you.' : 'Zehnora works on your computer: files, terminal, git and GitHub, Docker and databases.'}</p>
+      <p>{mode === 'chat' ? 'Ask anything. Maitre can search the web and GitHub for you.' : 'Maitre works on your computer: files, terminal, git and GitHub, Docker and databases.'}</p>
       <div className="suggestions">
         {SUGGESTIONS[mode].map((item) => (
           <button key={item.title} type="button" className="suggestion" onClick={() => onPick(item.prompt)}>

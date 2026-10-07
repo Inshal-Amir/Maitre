@@ -56,7 +56,7 @@ print(llm.invoke("Write a Python function that validates a non-empty task title.
 
   return (
     <>
-      <PageHead title="Quickstart" subtitle="Call the Zehnora model from your own code in three steps." />
+      <PageHead title="Quickstart" subtitle="Call the Maitre model from your own code in three steps." />
       <div className="steps">
         <section className="card">
           <h2 className="step-title">Create an API key</h2>

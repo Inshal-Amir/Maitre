@@ -84,7 +84,7 @@ const setProject: Tool = {
   parameters: {
     type: 'object',
     properties: {
-      path: { type: 'string', description: 'Absolute path or ~/..., e.g. ~/Zehnora/portfolio-site' },
+      path: { type: 'string', description: 'Absolute path or ~/..., e.g. ~/Maitre/portfolio-site' },
       name: { type: 'string', description: 'Human name of the project' },
     },
     required: ['path'],

@@ -60,7 +60,7 @@ export function clearMemories(): void {
   persist([]);
 }
 
-/** The system-prompt block with what the user asked Zehnora to remember; empty when memory is off. */
+/** The system-prompt block with what the user asked Maitre to remember; empty when memory is off. */
 export function memoryPrompt(): string {
   if (!getSettings().memoryEnabled) return '';
   const memories = listMemories();
@@ -74,7 +74,7 @@ const SECRET_LIKE = /(sk-[a-z0-9_-]{12,}|ghp_[a-z0-9]{20,}|gho_[a-z0-9]{20,}|AKI
 export const memoryTools: Tool[] = [
   {
     name: 'remember',
-    description: 'Save one short, lasting fact or preference about the user to memory (e.g. "Prefers answers in Roman Urdu", "Works on the Zehnora project"). One fact per call.',
+    description: 'Save one short, lasting fact or preference about the user to memory (e.g. "Prefers answers in Roman Urdu", "Works on the Maitre project"). One fact per call.',
     parameters: { type: 'object', properties: { fact: { type: 'string', description: 'The fact, written as a short third-person note' } }, required: ['fact'] },
     modes: ['chat', 'work'],
     assess: (args) => ({ risk: 'safe', title: `Remember: ${String(args.fact ?? '').slice(0, 80)}`, detail: '', allowKey: 'memory' }),

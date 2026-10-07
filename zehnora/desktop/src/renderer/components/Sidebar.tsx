@@ -80,7 +80,7 @@ export function Sidebar({ mode, conversations, activeId, running, status, onMode
       <div className="sidebar-top drag">
         <div className="brand">
           <span className="brand-mark">Z</span>
-          <span>Zehnora</span>
+          <span>Maitre</span>
         </div>
       </div>
       <div className="mode-switch" role="tablist" aria-label="Mode">

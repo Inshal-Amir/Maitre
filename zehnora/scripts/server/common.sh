@@ -9,6 +9,8 @@ die() { say "ERROR: $*"; exit 1; }
 set -a; . "$SECRETS/server.env"; set +a
 export ZEHNORA_HOST_UID="${ZEHNORA_HOST_UID:-$(id -u)}" ZEHNORA_HOST_GID="${ZEHNORA_HOST_GID:-$(id -g)}"
 export ZEHNORA_REPO_DIR="$REPO"
+export COMPANY_DOMAIN="${COMPANY_DOMAIN:-menthiq.com}"
+export CONSOLE_HOST="${CONSOLE_HOST:-maitre.$COMPANY_DOMAIN}" API_HOST="${API_HOST:-api.$COMPANY_DOMAIN}"
 ZEHNORA_ENGINE="${ZEHNORA_ENGINE:-llamacpp}"
 case "$ZEHNORA_ENGINE" in llamacpp|vllm) ;; *) die "ZEHNORA_ENGINE must be llamacpp or vllm (got: $ZEHNORA_ENGINE)" ;; esac
 MODEL_PATH="$ZEHNORA_MODEL_DIR/$ZEHNORA_MODEL_SUBDIR${ZEHNORA_MODEL_FILE:+/$ZEHNORA_MODEL_FILE}"

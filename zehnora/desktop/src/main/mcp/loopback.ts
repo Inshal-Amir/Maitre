@@ -34,10 +34,10 @@ export async function listenForRedirect(port = 0, path = '/callback', timeoutMs 
     const code = url.searchParams.get('code');
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', connection: 'close' });
     if (error || !code) {
-      res.end(PAGE('Not connected', 'Sign-in was cancelled or refused. You can close this tab and try again in Zehnora.'));
+      res.end(PAGE('Not connected', 'Sign-in was cancelled or refused. You can close this tab and try again in Maitre.'));
       settle?.reject(new Error(error === 'access_denied' ? 'Sign-in was cancelled.' : `Sign-in failed: ${error ?? 'no code returned'}`));
     } else {
-      res.end(PAGE('Connected to Zehnora', 'You can close this tab and return to the app.'));
+      res.end(PAGE('Connected to Maitre', 'You can close this tab and return to the app.'));
       settle?.resolve({ code, state: url.searchParams.get('state') ?? '' });
     }
     setImmediate(close);

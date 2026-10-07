@@ -47,10 +47,10 @@ function parseArgs(raw: string): Args {
 
 function describeError(error: Error): string {
   if (error instanceof ApiError) {
-    if (error.status === 401) return 'The Zehnora API rejected the key (401). Check the API key in Settings.';
-    if (error.status === 402) return 'Your account is out of credits (402). Ask the Zehnora admin to add credits.';
+    if (error.status === 401) return 'The Maitre API rejected the key (401). Check the API key in Settings.';
+    if (error.status === 402) return 'Your account is out of credits (402). Ask the Maitre admin to add credits.';
     if (error.status === 429) return 'The model server is busy (429). Try again in a moment.';
-    if (error.status === 530 || error.status === 502 || error.status === 503) return 'The Zehnora server is offline right now. Try again later.';
+    if (error.status === 530 || error.status === 502 || error.status === 503) return 'The Maitre server is offline right now. Try again later.';
     if (error.status === 524 || error.status === 504) return 'The model took too long to start answering (it may be busy with another request or restarting). Try again in a minute.';
     return `Model API error: ${error.message}`;
   }
@@ -144,7 +144,7 @@ export class Runtime {
       conversation.messages.push(message);
       this.emitMessage(conversation, message, true);
       if (!apiKey) {
-        this.finishWithError(conversation, message, 'Not connected yet. Sign in or create a Zehnora account to start.');
+        this.finishWithError(conversation, message, 'Not connected yet. Sign in or create a Maitre account to start.');
         return;
       }
 

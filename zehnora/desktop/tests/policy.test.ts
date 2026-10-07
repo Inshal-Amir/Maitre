@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { assessCommand, commandKey, isSensitivePath, splitCommand } from '../src/main/tools/policy';
 
-const cwd = path.join(os.homedir(), 'Zehnora', 'demo');
+const cwd = path.join(os.homedir(), 'Maitre', 'demo');
 const risk = (command: string): string => assessCommand(command, cwd).risk;
 
 describe('command policy', () => {

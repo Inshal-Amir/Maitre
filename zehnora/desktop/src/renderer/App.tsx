@@ -95,7 +95,7 @@ export function App(): ReactElement {
           </div>
         </header>
         {state.status?.state === 'offline' && state.settings?.hasApiKey && <div className="banner">{state.status.detail}. Messages will fail until it is back.</div>}
-        {state.account?.credits !== null && state.account?.credits !== undefined && state.account.credits <= 0 && <div className="banner">Your account has no credits left. Ask the Zehnora admin to add credits.</div>}
+        {state.account?.credits !== null && state.account?.credits !== undefined && state.account.credits <= 0 && <div className="banner">Your account has no credits left. Ask the Maitre admin to add credits.</div>}
         {needsAccount ? (
           <Onboarding status={state.status} onConnected={state.refreshStatus} onUseKey={() => setSettingsOpen(true)} />
         ) : hasMessages && active ? (

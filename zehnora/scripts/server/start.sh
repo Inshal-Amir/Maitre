@@ -46,4 +46,4 @@ dc up -d nginx
 [ "${1:-}" = "--with-tunnel" ] && { dc --profile tunnel up -d cloudflared; say "tunnel connector started"; }
 say "model deployment: $ZEHNORA_MODEL_REPO @ ${ZEHNORA_MODEL_REVISION:0:12} ${ZEHNORA_MODEL_FILE:-} ($ZEHNORA_ENGINE, ctx ${ZEHNORA_MAX_MODEL_LEN:-})"
 docker exec zehnora-model-1 nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader || true
-say "local check: curl -s -H 'Host: api.$OWNER_DOMAIN' http://127.0.0.1:8080/v1/models"
+say "local check: curl -s -H 'Host: $API_HOST' http://127.0.0.1:8080/v1/models"

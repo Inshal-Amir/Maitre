@@ -29,13 +29,15 @@ function bundledGoogleClient(): { clientId: string; clientSecret: string } {
   return { clientId: process.env.ZEHNORA_GOOGLE_CLIENT_ID ?? '', clientSecret: process.env.ZEHNORA_GOOGLE_CLIENT_SECRET ?? '' };
 }
 
+const legacyWorkDir = path.join(os.homedir(), 'Zehnora');
+
 const DEFAULTS: StoredSettings = {
-  apiBase: process.env.ZEHNORA_API_BASE ?? 'https://api.dubg.dev/v1',
-  consoleBase: process.env.ZEHNORA_CONSOLE_BASE ?? 'https://console.dubg.dev',
+  apiBase: process.env.ZEHNORA_API_BASE ?? 'https://api.menthiq.com/v1',
+  consoleBase: process.env.ZEHNORA_CONSOLE_BASE ?? 'https://maitre.menthiq.com',
   accountEmail: '',
   model: process.env.ZEHNORA_MODEL ?? 'zehnora-coder',
   approvalPolicy: 'risky',
-  defaultWorkDir: path.join(os.homedir(), 'Zehnora'),
+  defaultWorkDir: fs.existsSync(legacyWorkDir) ? legacyWorkDir : path.join(os.homedir(), 'Maitre'),
   searxngUrl: '',
   contextTokens: 60_000,
   maxOutputTokens: 8192,
@@ -57,6 +59,12 @@ const ENV_SECRETS: Partial<Record<SecretName, string>> = {
 const settingsFile = (): string => path.join(app.getPath('userData'), 'settings.json');
 const secretFile = (name: SecretName): string => path.join(app.getPath('userData'), 'secrets', `${name.replace(/[^a-z0-9-]/gi, '_')}.bin`);
 
+/** Addresses from before the move to menthiq.com, rewritten on load. */
+const MOVED: Record<string, string> = {
+  'https://api.dubg.dev/v1': 'https://api.menthiq.com/v1',
+  'https://console.dubg.dev': 'https://maitre.menthiq.com',
+};
+
 let cache: StoredSettings | null = null;
 
 function load(): StoredSettings {
@@ -65,7 +73,8 @@ function load(): StoredSettings {
     const stored = JSON.parse(fs.readFileSync(settingsFile(), 'utf8')) as Partial<StoredSettings>;
     const google = { ...DEFAULTS.google, ...stored.google };
     if (!google.clientId) ({ clientId: google.clientId, clientSecret: google.clientSecret } = DEFAULTS.google);
-    cache = { ...DEFAULTS, ...stored, google };
+    const merged = { ...DEFAULTS, ...stored, google };
+    cache = { ...merged, apiBase: MOVED[merged.apiBase] ?? merged.apiBase, consoleBase: MOVED[merged.consoleBase] ?? merged.consoleBase };
   } catch {
     cache = { ...DEFAULTS };
   }
@@ -105,7 +114,7 @@ export function saveSettings(patch: SettingsPatch): Settings {
   const { apiKey, githubToken, ...rest } = patch;
   if (apiKey !== undefined) {
     const key = apiKey.trim();
-    if (key && !/^sk-[A-Za-z0-9_-]{16,}$/.test(key)) throw new Error('That does not look like a Zehnora API key (sk-…).');
+    if (key && !/^sk-[A-Za-z0-9_-]{16,}$/.test(key)) throw new Error('That does not look like a Maitre API key (sk-…).');
     writeSecret('api-key', key);
   }
   if (githubToken !== undefined) writeSecret('github-token', githubToken.trim());

@@ -27,8 +27,8 @@ function GoogleLogo() {
 }
 
 const POINTS = [
-  { icon: Cpu, title: 'Our own model on our own GPU', text: 'Qwen3.6-35B-A3B, served from the Zehnora GPU server — your requests never go to a third-party AI provider.' },
-  { icon: KeyRound, title: 'OpenAI-compatible API', text: 'Use the OpenAI SDK, LangChain or curl with your Zehnora key and base URL.' },
+  { icon: Cpu, title: 'Our own model on our own GPU', text: 'Qwen3.6-35B-A3B, served from the Maitre GPU server — your requests never go to a third-party AI provider.' },
+  { icon: KeyRound, title: 'OpenAI-compatible API', text: 'Use the OpenAI SDK, LangChain or curl with your Maitre key and base URL.' },
   { icon: ShieldCheck, title: 'Credits you can see', text: 'Every request is reserved, charged on real usage and listed in your history.' },
 ];
 

@@ -31,7 +31,7 @@ export function ensureProject(root: string, name: string): { created: boolean } 
   if (!fs.existsSync(file(root, BRIEF))) fs.writeFileSync(file(root, BRIEF), `# ${name}\n\n(Requirements not written yet.)\n`);
   if (!fs.existsSync(file(root, NOTES))) fs.writeFileSync(file(root, NOTES), `# Notes and decisions\n`);
   const readme = path.join(memoryDir(root), 'README.md');
-  if (!fs.existsSync(readme)) fs.writeFileSync(readme, 'Zehnora keeps this project\'s brief, plan and notes here so work can continue across chats. Safe to commit or to delete.\n');
+  if (!fs.existsSync(readme)) fs.writeFileSync(readme, 'Maitre keeps this project\'s brief, plan and notes here so work can continue across chats. Safe to commit or to delete.\n');
   return { created };
 }
 
@@ -60,7 +60,7 @@ export function addNote(root: string, note: string): void {
 const tail = (text: string, max: number): string => (text.length > max ? `…${text.slice(-max)}` : text);
 const head = (text: string, max: number): string => (text.length > max ? `${text.slice(0, max)}\n…(see ${PROJECT_DIR}/${BRIEF} for the rest)` : text);
 
-/** The project memory block for the system prompt; empty when the working folder is not a Zehnora project yet. */
+/** The project memory block for the system prompt; empty when the working folder is not a Maitre project yet. */
 export function projectMemory(root: string, plan: Plan | undefined): string {
   if (!hasProject(root)) return '';
   const brief = readOr(file(root, BRIEF)).trim();

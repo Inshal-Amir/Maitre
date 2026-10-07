@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
     await dispose()
 
 
-app = FastAPI(title="Zehnora Platform API", version="0.1.0", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title="Maitre Platform API", version="0.1.0", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.add_exception_handler(ApiError, api_error_handler)
 
 if get_settings().cors_origins:

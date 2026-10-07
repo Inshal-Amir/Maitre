@@ -40,7 +40,7 @@ export async function extractDocument(file: string): Promise<ExtractedDocument> 
   const stat = fs.statSync(file);
   if (stat.isDirectory()) throw new ToolError(`${path.basename(file)} is a folder.`);
   if (stat.size > MAX_FILE_BYTES) throw new ToolError(`${path.basename(file)} is larger than 50 MB.`);
-  if (IMAGE.test(file)) throw new ToolError('Images cannot be read yet: the Zehnora model understands text only.');
+  if (IMAGE.test(file)) throw new ToolError('Images cannot be read yet: the Maitre model understands text only.');
   if (OFFICE_UNSUPPORTED.test(file)) throw new ToolError(`${path.extname(file)} files are not supported yet; save it as PDF or .docx.`);
   const buffer = fs.readFileSync(file);
   if (/\.pdf$/i.test(file)) return readPdf(buffer);

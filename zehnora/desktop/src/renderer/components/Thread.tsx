@@ -56,7 +56,7 @@ function Waiting({ phase }: { phase: 'compacting' | 'model' }): ReactElement {
   const seconds = useElapsed(true);
   const text = phase === 'compacting'
     ? 'Summarizing earlier messages so the chat stays fast…'
-    : seconds < 20 ? 'Waiting for Zehnora…' : `Still waiting for the model (${seconds}s). It may be busy with another request.`;
+    : seconds < 20 ? 'Waiting for Maitre…' : `Still waiting for the model (${seconds}s). It may be busy with another request.`;
   return (
     <div className="waiting" role="status">
       <div className="typing"><span /><span /><span /></div>
@@ -122,7 +122,7 @@ export function Thread({ messages, approvals, questions, plan, waiting, compacte
         {turns.map((turn) => (
           <Fragment key={turn.kind === 'user' ? turn.message.id : turn.id}>
             {compactedAt !== undefined && compactedAt > 0 && turn.start === compactedAt && (
-              <div className="compacted" role="note">Earlier messages were summarized to keep this chat fast. Zehnora still has the key points.</div>
+              <div className="compacted" role="note">Earlier messages were summarized to keep this chat fast. Maitre still has the key points.</div>
             )}
             {turn.kind === 'user' ? (
               <div className="turn user">

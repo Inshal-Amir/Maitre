@@ -1,4 +1,4 @@
-// Zehnora Desktop end-to-end check: the real Electron app against the mock model server (Playwright Electron driver).
+// Maitre Desktop end-to-end check: the real Electron app against the mock model server (Playwright Electron driver).
 import { _electron as electron } from 'playwright-core';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -41,7 +41,7 @@ try {
   const page = await app.firstWindow();
   await page.waitForSelector('.sidebar', { timeout: 30_000 });
   check('window opens with sidebar', true);
-  check('window title', (await page.title()) === 'Zehnora');
+  check('window title', (await page.title()) === 'Maitre');
 
   const iso = await page.evaluate(() => ({ require: typeof window.require, process: typeof window.process, keys: Object.keys(window.zehnora).length }));
   check('renderer has no Node access, only the preload API', iso.require === 'undefined' && iso.process === 'undefined' && iso.keys > 10, JSON.stringify(iso));
@@ -159,7 +159,7 @@ try {
   await page.waitForFunction(() => !document.querySelector('.attachment.folder'));
   check('removing the folder chip goes back to the default folder', !(await page.innerText('.topbar')).includes(path.basename(picked)));
 
-  const pdf = makePdf(path.join(workDir, 'report.pdf'), ['Quarterly report for Zehnora', 'Revenue grew 40 percent']);
+  const pdf = makePdf(path.join(workDir, 'report.pdf'), ['Quarterly report for Maitre', 'Revenue grew 40 percent']);
   await app.evaluate(({ dialog }, file) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] }); }, pdf);
   await page.click('button.attach');
   await page.waitForSelector('.attachments .attachment:has-text("report.pdf")', { timeout: 15_000 });

@@ -49,7 +49,7 @@ async function platform<T>(path: string, init: RequestInit & { session?: Session
       signal: AbortSignal.timeout(30_000),
     });
   } catch {
-    throw new AccountError(`Cannot reach ${base}. Check your internet connection; the Zehnora server may be offline.`);
+    throw new AccountError(`Cannot reach ${base}. Check your internet connection; the Maitre server may be offline.`);
   }
   const text = await response.text();
   let body: T & PlatformError;
@@ -57,7 +57,7 @@ async function platform<T>(path: string, init: RequestInit & { session?: Session
     body = JSON.parse(text) as T & PlatformError;
   } catch {
     const offline = response.status === 530 || response.status === 502 || response.status === 503;
-    throw new AccountError(offline ? 'The Zehnora server is offline right now. Try again later.' : `Unexpected answer from the server (HTTP ${response.status}).`);
+    throw new AccountError(offline ? 'The Maitre server is offline right now. Try again later.' : `Unexpected answer from the server (HTTP ${response.status}).`);
   }
   if (!response.ok) throw new AccountError(body.error?.message ?? `HTTP ${response.status}`);
   return { body, response };
@@ -89,7 +89,7 @@ export async function connect(email: string, password: string, create: boolean):
   });
   const session = sessionFrom(response, body.csrf_token);
   storeSession(session);
-  const name = `Zehnora Desktop · ${os.hostname().replace(/\.local$/, '')}`.slice(0, 100);
+  const name = `Maitre Desktop · ${os.hostname().replace(/\.local$/, '')}`.slice(0, 100);
   const { body: key } = await platform<{ secret: string }>('/keys', { method: 'POST', session, body: JSON.stringify({ name }) });
   saveSettings({ apiKey: key.secret, accountEmail: body.user.email });
   return status();

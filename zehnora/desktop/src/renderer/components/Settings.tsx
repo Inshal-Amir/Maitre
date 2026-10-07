@@ -8,7 +8,7 @@ import { api } from '../state';
 const POLICIES: { value: ApprovalPolicy; title: string; text: string }[] = [
   { value: 'risky', title: 'Ask for risky actions', text: 'Recommended. Deleting, pushing, sudo, system installs, unknown programs and changes outside the working folder ask first.' },
   { value: 'writes', title: 'Ask before any change', text: 'Only reading and searching run on their own. Every file change and command that changes something asks first.' },
-  { value: 'never', title: 'Never ask', text: 'Zehnora acts without asking. Only use this if you trust the task completely.' },
+  { value: 'never', title: 'Never ask', text: 'Maitre acts without asking. Only use this if you trust the task completely.' },
 ];
 
 export function Settings({ settings, status, account, connectors, memories, onSignOut, onSave, onClose }: {
@@ -92,7 +92,7 @@ export function Settings({ settings, status, account, connectors, memories, onSi
             <h3>Memory</h3>
             <label className="check">
               <input type="checkbox" checked={draft.memoryEnabled} onChange={(event) => set('memoryEnabled', event.target.checked)} />
-              Let Zehnora remember facts and preferences you share (in Chat and Work). Say "remember that…" or "forget…".
+              Let Maitre remember facts and preferences you share (in Chat and Work). Say "remember that…" or "forget…".
             </label>
             {memories.length ? (
               <div className="memory-list">
@@ -118,7 +118,7 @@ export function Settings({ settings, status, account, connectors, memories, onSi
             </label>
             <div className="field-note">
               {status && <span className={`dot ${status.state}`} />} {status?.detail ?? ''}. Create keys at{' '}
-              <a href="https://console.dubg.dev" onClick={(event) => { event.preventDefault(); api().openExternal('https://console.dubg.dev'); }}>console.dubg.dev</a>.
+              <a href="https://maitre.menthiq.com" onClick={(event) => { event.preventDefault(); api().openExternal('https://maitre.menthiq.com'); }}>maitre.menthiq.com</a>.
             </div>
             <div className="grid2">
               <label>

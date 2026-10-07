@@ -36,7 +36,7 @@ export default function Keys() {
 
   return (
     <>
-      <PageHead title="API keys" subtitle="Keys let your code call the Zehnora API. Each key is shown once; keep it secret." />
+      <PageHead title="API keys" subtitle="Keys let your code call the Maitre API. Each key is shown once; keep it secret." />
       <ErrorNote error={error} />
       {secret && (
         <div className="card secret">

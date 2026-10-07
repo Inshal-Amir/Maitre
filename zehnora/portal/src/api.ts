@@ -1,4 +1,4 @@
-// Thin client for the Zehnora platform API (same origin, session cookie + CSRF header).
+// Thin client for the Maitre platform API (same origin, session cookie + CSRF header).
 
 export class ApiError extends Error {
   status: number;

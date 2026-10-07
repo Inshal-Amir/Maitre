@@ -102,7 +102,7 @@ export async function signIn(services: GoogleService[], openBrowser: (url: strin
       client_id: clientId,
       ...(clientSecret ? { client_secret: clientSecret } : {}),
     });
-    if (!tokens.refresh_token) throw new GoogleAuthError('Google did not return a refresh token; remove Zehnora from your Google account permissions and connect again.');
+    if (!tokens.refresh_token) throw new GoogleAuthError('Google did not return a refresh token; remove Maitre from your Google account permissions and connect again.');
     const granted = new Set((tokens.scope ?? '').split(' '));
     const allowed = services.filter((service) => SCOPES[service].every((scope) => granted.has(scope)));
     const email = await fetchEmail(tokens.access_token);

@@ -11,7 +11,7 @@ import { makePdf } from './fixtures/make-pdf.mjs';
 import { startMockModel } from './mock-model.mjs';
 
 const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'zehnora-attach-')));
-const pdf = makePdf(path.join(dir, 'invoice.pdf'), ['Invoice 1042 for Zehnora', 'Total due: 5000 PKR']);
+const pdf = makePdf(path.join(dir, 'invoice.pdf'), ['Invoice 1042 for Maitre', 'Total due: 5000 PKR']);
 afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
 const attachment = (text: string, extra: Partial<Attachment> = {}): Attachment => ({
@@ -23,7 +23,7 @@ describe('document extraction', () => {
     const doc = await extractDocument(pdf);
     expect(doc.kind).toBe('pdf');
     expect(doc.pages).toBe(2);
-    expect(doc.text).toContain('--- page 1 ---\nInvoice 1042 for Zehnora');
+    expect(doc.text).toContain('--- page 1 ---\nInvoice 1042 for Maitre');
     expect(doc.text).toContain('--- page 2 ---\nTotal due: 5000 PKR');
   });
 

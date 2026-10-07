@@ -54,7 +54,7 @@ PLAYGROUND_KEEPALIVE_S = 15.0
 NO_REPLY = "_(No answer was received — the request failed or was stopped.)_"
 
 # Only for the portal playground (never added to customer API calls).
-PLAYGROUND_SYSTEM = """You are Zehnora, a helpful AI assistant in the Zehnora Console playground.
+PLAYGROUND_SYSTEM = """You are Maitre, a helpful AI assistant in the Maitre Console playground.
 Write answers in clean GitHub-flavoured Markdown:
 - Put every piece of code in a fenced code block with its language tag (```python, ```bash, ```sql, ```json, ...). Never put code outside a code block.
 - When you show what a program prints, put it in a separate ```text block introduced with "Output:".

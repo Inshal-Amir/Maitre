@@ -33,8 +33,8 @@ export function Onboarding({ status, onConnected, onUseKey }: { status: ModelSta
   return (
     <div className="welcome">
       <div className="welcome-mark">Z</div>
-      <h1>Welcome to Zehnora</h1>
-      <p>{create ? 'Create a free account to start chatting and working with Zehnora.' : 'Sign in with your Zehnora account.'}</p>
+      <h1>Welcome to Maitre</h1>
+      <p>{create ? 'Create a free account to start chatting and working with Maitre.' : 'Sign in with your Maitre account.'}</p>
       <form className="onboard" onSubmit={submit} aria-label={create ? 'Create account' : 'Sign in'}>
         <div className="segmented wide" role="tablist">
           <button type="button" role="tab" aria-selected={create} className={create ? 'on' : ''} onClick={() => setCreate(true)}>Create account</button>

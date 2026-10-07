@@ -41,21 +41,21 @@ const ICON = { windows: Monitor, 'mac-arm64': Apple, 'mac-x64': Apple } as const
 const SHORT = { windows: 'Windows', 'mac-arm64': 'Mac (Apple silicon)', 'mac-x64': 'Mac (Intel)' } as const;
 
 const FEATURES = [
-  { icon: Briefcase, title: 'Work mode', text: 'Zehnora works on your computer: it plans with you, then builds projects, runs commands, uses git, GitHub and Docker, and checks its own work.' },
+  { icon: Briefcase, title: 'Work mode', text: 'Maitre works on your computer: it plans with you, then builds projects, runs commands, uses git, GitHub and Docker, and checks its own work.' },
   { icon: ShieldCheck, title: 'You stay in control', text: 'Reading and safe steps run on their own; deleting, pushing, installing system software or touching secrets always asks you first.' },
-  { icon: FileText, title: 'Files and memory', text: 'Attach PDFs, Word and code files. Zehnora remembers what you ask it to and keeps long chats focused.' },
-  { icon: Plug, title: 'Connected apps', text: 'Connect Google (Gmail, Calendar, Drive, Docs, Sheets) or any MCP server and ask Zehnora to use them.' },
+  { icon: FileText, title: 'Files and memory', text: 'Attach PDFs, Word and code files. Maitre remembers what you ask it to and keeps long chats focused.' },
+  { icon: Plug, title: 'Connected apps', text: 'Connect Google (Gmail, Calendar, Drive, Docs, Sheets) or any MCP server and ask Maitre to use them.' },
 ];
 
 const STEPS: Record<'windows' | 'mac', { title: string; text: string }[]> = {
   windows: [
-    { title: 'Run the installer', text: 'Open Zehnora-Setup.exe. If Windows shows “Windows protected your PC”, click More info → Run anyway (the app is not code-signed yet).' },
-    { title: 'Create your account', text: 'Open Zehnora and choose Create account, or sign in with your console account. The app connects to our model by itself.' },
+    { title: 'Run the installer', text: 'Open Maitre-Setup.exe. If Windows shows “Windows protected your PC”, click More info → Run anyway (the app is not code-signed yet).' },
+    { title: 'Create your account', text: 'Open Maitre and choose Create account, or sign in with your console account. The app connects to our model by itself.' },
     { title: 'Ask or let it work', text: 'Use Chat for questions and research, Work for tasks on your computer.' },
   ],
   mac: [
-    { title: 'Install', text: 'Open the .dmg and drag Zehnora into Applications.' },
-    { title: 'Open it the first time', text: 'Right-click Zehnora in Applications → Open → Open (it is not notarized yet). If macOS says it is damaged, run xattr -cr /Applications/Zehnora.app in Terminal once.' },
+    { title: 'Install', text: 'Open the .dmg and drag Maitre into Applications.' },
+    { title: 'Open it the first time', text: 'Right-click Maitre in Applications → Open → Open (it is not notarized yet). If macOS says it is damaged, run xattr -cr /Applications/Maitre.app in Terminal once.' },
     { title: 'Create your account', text: 'Choose Create account or sign in with your console account, then use Chat or Work.' },
   ],
 };
@@ -83,8 +83,8 @@ export default function Download() {
       </header>
 
       <section className="download-hero">
-        <span className="eyebrow">Zehnora Desktop {manifest ? `· ${manifest.version}` : ''}</span>
-        <h1>Zehnora on your computer</h1>
+        <span className="eyebrow">Maitre Desktop {manifest ? `· ${manifest.version}` : ''}</span>
+        <h1>Maitre on your computer</h1>
         <p>Chat, research and real work on your files and projects — with our own AI model, on Windows and Mac.</p>
         {error && <div className="alert error"><span>The download list could not be loaded. Please try again later.</span></div>}
         <div className="download-cta">
@@ -98,7 +98,7 @@ export default function Download() {
           {primary && <span className="download-meta">{primary.label} · {mb(primary.size)} · version {manifest?.version}</span>}
           {platform === 'mac' && primary && <span className="download-meta">Not sure which Mac? Apple menu → About This Mac: “Chip: Apple M…” = Apple silicon, “Processor: Intel” = Intel.</span>}
         </div>
-        <img className="download-shot" src="/desktop-preview.png" alt="Zehnora Desktop asking questions before it builds a website" />
+        <img className="download-shot" src="/desktop-preview.png" alt="Maitre Desktop asking questions before it builds a website" />
       </section>
 
       <section className="download-section">
@@ -140,7 +140,7 @@ export default function Download() {
             <li><Check size={15} />Windows 10 or 11 (64-bit), or macOS 12 or newer</li>
             <li><Check size={15} />4 GB RAM and about 500 MB of free disk space</li>
             <li><Check size={15} />An internet connection (the model runs on our GPU server)</li>
-            <li><Check size={15} />A Zehnora account with credits — <Link to="/register">create one</Link></li>
+            <li><Check size={15} />A Maitre account with credits — <Link to="/register">create one</Link></li>
           </ul>
         </div>
       </section>

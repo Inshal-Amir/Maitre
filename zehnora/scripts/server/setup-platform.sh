@@ -31,9 +31,10 @@ else
   set_env ZEHNORA_PLAYGROUND_GATEWAY_KEY "$key"
   say "playground gateway key created and stored in platform.env"
 fi
-set_env ZEHNORA_PUBLIC_API_BASE "https://api.$OWNER_DOMAIN/v1"
+set_env ZEHNORA_PUBLIC_API_BASE "https://$API_HOST/v1"
+if grep -q '^ZEHNORA_GOOGLE_CLIENT_ID=.\+' "$ENVF"; then set_env ZEHNORA_CONSOLE_URL "https://$CONSOLE_HOST"; fi
 
 dc up -d platform-api >/dev/null
 i=0; until [ "$(docker inspect -f '{{.State.Health.Status}}' "$API" 2>/dev/null)" = healthy ]; do
   i=$((i+1)); [ $i -ge 60 ] && die "platform API not healthy after restart (docker logs $API)"; sleep 3; done
-say "platform ready: model zehnora-coder, playground key set, public API base https://api.$OWNER_DOMAIN/v1"
+say "platform ready: model zehnora-coder, playground key set, public API base https://$API_HOST/v1"

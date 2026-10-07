@@ -15,9 +15,9 @@ const tag = `v${version}`;
 const publish = process.argv.includes('--publish');
 
 const TARGETS = [
-  { id: 'windows', os: 'Windows', label: 'Windows 10 and 11 (64-bit)', file: `Zehnora-Setup-${version}.exe` },
-  { id: 'mac-arm64', os: 'macOS', label: 'Mac with Apple silicon (M1–M4)', file: `Zehnora-${version}-mac-arm64.dmg` },
-  { id: 'mac-x64', os: 'macOS', label: 'Mac with Intel processor', file: `Zehnora-${version}-mac-x64.dmg` },
+  { id: 'windows', os: 'Windows', label: 'Windows 10 and 11 (64-bit)', file: `Maitre-Setup-${version}.exe` },
+  { id: 'mac-arm64', os: 'macOS', label: 'Mac with Apple silicon (M1–M4)', file: `Maitre-${version}-mac-arm64.dmg` },
+  { id: 'mac-x64', os: 'macOS', label: 'Mac with Intel processor', file: `Maitre-${version}-mac-x64.dmg` },
 ];
 
 const sha256 = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
@@ -36,7 +36,7 @@ if (publish) {
     gh('repo', 'view', repo, '--json', 'name');
   } catch {
     // A release needs at least one commit, so the repository starts with a README.
-    gh('repo', 'create', repo, '--public', '--add-readme', '--description', 'Zehnora Desktop installers for Windows and macOS');
+    gh('repo', 'create', repo, '--public', '--add-readme', '--description', 'Maitre Desktop installers for Windows and macOS');
   }
   const exists = (() => {
     try {
@@ -46,7 +46,7 @@ if (publish) {
       return false;
     }
   })();
-  if (!exists) gh('release', 'create', tag, '--repo', repo, '--title', `Zehnora Desktop ${version}`, '--notes', notes || `Zehnora Desktop ${version}`);
+  if (!exists) gh('release', 'create', tag, '--repo', repo, '--title', `Maitre Desktop ${version}`, '--notes', notes || `Maitre Desktop ${version}`);
   gh('release', 'upload', tag, '--repo', repo, '--clobber', ...files.map((f) => f.local));
   console.log(`published ${tag} to https://github.com/${repo}/releases/tag/${tag}`);
 }

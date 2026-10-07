@@ -16,7 +16,7 @@ fi
 
 ask() { # label json-body: send one request, then print timing, tool calls and the answer
   local out t0; out="$(mktemp)"; t0=$(date +%s.%N)
-  curl -s --max-time 900 http://127.0.0.1:8080/v1/chat/completions -H "Host: api.$OWNER_DOMAIN" \
+  curl -s --max-time 900 http://127.0.0.1:8080/v1/chat/completions -H "Host: $API_HOST" \
     -H "Authorization: Bearer $(cat "$KEYF")" -H 'Content-Type: application/json' -d "$2" >"$out"
   python3 - "$1" "$t0" "$out" <<'PY'
 import json, sys, time

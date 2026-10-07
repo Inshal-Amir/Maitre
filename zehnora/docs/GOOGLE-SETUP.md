@@ -16,7 +16,7 @@ Zehnora Desktop connects to Google through MCP. Users click **Settings → Conne
 ## Owner steps (once, in Google Cloud console)
 1. Create a project, e.g. "Zehnora Desktop".
 2. APIs & Services → Library → enable **Gmail API, Google Calendar API, Google Drive API, Google Docs API, Google Sheets API**.
-3. OAuth consent screen (Google Auth Platform → Branding / Audience): app name "Zehnora", support email, audience **External**, publishing status **Testing**.
+3. OAuth consent screen (Google Auth Platform → Branding / Audience): app name "Maitre", support email, audience **External**, publishing status **Testing**.
 4. Audience → **Test users**: add the Google accounts of every tester (up to 100). Only these accounts can sign in while the app is in Testing. Refresh tokens of Testing apps expire after 7 days, so testers reconnect weekly.
 5. Data access → add scopes: `openid`, `email`, `gmail.readonly`, `gmail.compose`, `calendar.events`, `drive.readonly`, `drive.file`, `documents`, `spreadsheets`.
 6. Clients → **Create client → Application type: Desktop app** → name "Zehnora Desktop" → **Download JSON**.
@@ -31,19 +31,19 @@ Zehnora Desktop connects to Google through MCP. Users click **Settings → Conne
 ## Other MCP servers
 Settings → Connected apps → **Add MCP server** accepts a remote URL (Streamable HTTP, with MCP OAuth sign-in and dynamic client registration; redirect `http://127.0.0.1:33418/mcp/callback`) or a local command (stdio, e.g. `npx -y @modelcontextprotocol/server-filesystem ~/Documents`). Their tools appear to the agent as `<server name>_<tool>`, with approval risk taken from the tools' annotations and names.
 
-## Sign in with Google on the console (console.dubg.dev)
+## Sign in with Google on the console (maitre.menthiq.com)
 
 Separate from the Desktop connector above: this lets anyone create a console account with Google. It only asks for `openid email profile`, so the app can be published to all Google users without Google's verification of restricted scopes. Use a **separate Google Cloud project** (e.g. "Zehnora Console") so the Gmail/Drive scopes of the Desktop connector do not hold this one in Testing mode.
 
-1. Google Auth Platform → Branding: app name "Zehnora", support email, app domain `dubg.dev`; Audience: **External**, then **Publish app** (In production).
+1. Google Auth Platform → Branding: app name "Maitre", support email, app domain `menthiq.com`; Audience: **External**, then **Publish app** (In production).
 2. Clients → Create client → **Web application**:
-   - Authorized JavaScript origins: `https://console.dubg.dev`
-   - Authorized redirect URIs: `https://console.dubg.dev/platform/v1/auth/google/callback`
+   - Authorized JavaScript origins: `https://maitre.menthiq.com`
+   - Authorized redirect URIs: `https://maitre.menthiq.com/platform/v1/auth/google/callback`
 3. On the GPU PC add to `~/zehnora/.server-secrets/platform.env` (never commit it):
    ```
    ZEHNORA_GOOGLE_CLIENT_ID=<client id>.apps.googleusercontent.com
    ZEHNORA_GOOGLE_CLIENT_SECRET=<client secret>
-   ZEHNORA_CONSOLE_URL=https://console.dubg.dev
+   ZEHNORA_CONSOLE_URL=https://maitre.menthiq.com
    ```
    then run `zehnora/scripts/server/start.sh --with-tunnel`. The login and sign-up pages show "Continue with Google" as soon as `/platform/v1/auth/providers` reports `google: true`.
 

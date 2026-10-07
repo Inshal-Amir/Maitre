@@ -276,7 +276,7 @@ const REGISTER: Record<GoogleService, (server: McpServer, token: Token) => void>
   sheets: registerSheets,
 };
 
-/** Zehnora's built-in Google Workspace MCP server; runs in-process and calls the Google REST APIs with the user's token. */
+/** Maitre's built-in Google Workspace MCP server; runs in-process and calls the Google REST APIs with the user's token. */
 export function createGoogleServer(services: GoogleService[], token: Token): McpServer {
   const server = new McpServer({ name: 'zehnora-google', version: '1.0.0' });
   for (const service of services) REGISTER[service](server, token);

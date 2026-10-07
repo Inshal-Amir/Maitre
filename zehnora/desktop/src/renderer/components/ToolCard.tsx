@@ -92,7 +92,7 @@ function ApprovalBox({ request }: { request: ApprovalRequest }): ReactElement {
     <div className="approval" role="alertdialog" aria-label="Approval needed">
       <div className="approval-head">
         <Icon name="shield" size={16} />
-        <span>Zehnora wants to run a {request.reason === 'risky' ? 'risky ' : ''}action</span>
+        <span>Maitre wants to run a {request.reason === 'risky' ? 'risky ' : ''}action</span>
       </div>
       <pre className="approval-command">{request.title}</pre>
       {request.detail && <div className="approval-detail">{request.detail}</div>}

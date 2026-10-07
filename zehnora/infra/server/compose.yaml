@@ -82,7 +82,10 @@ services:
       - ../../portal/dist:/usr/share/nginx/portal:ro
     environment:
       OWNER_DOMAIN: ${OWNER_DOMAIN:?set OWNER_DOMAIN in server.env}
-      NGINX_ENVSUBST_FILTER: OWNER_DOMAIN
+      COMPANY_DOMAIN: ${COMPANY_DOMAIN:-menthiq.com}
+      CONSOLE_HOST: ${CONSOLE_HOST:-maitre.menthiq.com}
+      API_HOST: ${API_HOST:-api.menthiq.com}
+      NGINX_ENVSUBST_FILTER: OWNER_DOMAIN|COMPANY_DOMAIN|CONSOLE_HOST|API_HOST
     ports:
       - "127.0.0.1:8080:8080"
     networks: [edge]

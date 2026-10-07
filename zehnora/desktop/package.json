@@ -1,6 +1,6 @@
 {
   "name": "zehnora-desktop",
-  "productName": "Zehnora",
+  "productName": "Maitre",
   "version": "0.4.1",
   "private": true,
   "description": "Zehnora Desktop: Chat and Work agent app connected to the Zehnora model API",
@@ -39,7 +39,7 @@
   },
   "build": {
     "appId": "dev.dubg.zehnora",
-    "productName": "Zehnora",
+    "productName": "Maitre",
     "files": [
       "dist/**",
       "package.json"
@@ -75,10 +75,10 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "Zehnora-Setup-${version}.${ext}",
+      "artifactName": "Maitre-Setup-${version}.${ext}",
       "createDesktopShortcut": true
     },
-    "artifactName": "Zehnora-${version}-${os}-${arch}.${ext}",
+    "artifactName": "Maitre-${version}-${os}-${arch}.${ext}",
     "extraResources": [
       {
         "from": "build-config",

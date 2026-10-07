@@ -49,13 +49,13 @@ try {
   await page.click('.mode-switch button:has-text("Work")');
   await page.click('.new-chat');
   t0 = Date.now();
-  await page.fill('textarea', 'Is folder mein "hello" naam ka folder banao, us mein hello.py likho jo "Hello from Zehnora" print kare, phir usay python3 se chala ke output batao.');
+  await page.fill('textarea', 'Is folder mein "hello" naam ka folder banao, us mein hello.py likho jo "Hello from Maitre" print kare, phir usay python3 se chala ke output batao.');
   await page.keyboard.press('Enter');
   await done();
   const work = await last().innerText();
   const workTools = await last().locator('.tool .tool-label').allInnerTexts();
   const file = path.join(workDir, 'hello', 'hello.py');
-  check('work task creates and runs the script', fs.existsSync(file) && /Hello from Zehnora/.test(work), `${((Date.now() - t0) / 1000).toFixed(0)}s, tools: ${workTools.join(' | ').slice(0, 200)}`);
+  check('work task creates and runs the script', fs.existsSync(file) && /Hello from Maitre/.test(work), `${((Date.now() - t0) / 1000).toFixed(0)}s, tools: ${workTools.join(' | ').slice(0, 200)}`);
   await page.screenshot({ path: path.join(evidence, 'live-work.png') });
   }
 

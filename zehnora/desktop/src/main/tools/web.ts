@@ -92,7 +92,7 @@ async function fetchChecked(raw: string, mode: Mode, signal: AbortSignal): Promi
     const response = await fetch(url, {
       redirect: 'manual',
       signal: AbortSignal.any([signal, AbortSignal.timeout(FETCH_TIMEOUT_MS)]),
-      headers: { 'user-agent': 'Mozilla/5.0 (compatible; ZehnoraDesktop/1.0)', accept: 'text/html,application/json,text/plain;q=0.9,*/*;q=0.5' },
+      headers: { 'user-agent': 'Mozilla/5.0 (compatible; MaitreDesktop/1.0)', accept: 'text/html,application/json,text/plain;q=0.9,*/*;q=0.5' },
     });
     const location = response.headers.get('location');
     if (response.status >= 300 && response.status < 400 && location) {
@@ -219,7 +219,7 @@ const fetchUrlTool: Tool = {
 async function github<T>(route: string, signal: AbortSignal): Promise<T> {
   const token = readSecret('github-token');
   const response = await fetch(`https://api.github.com${route}`, {
-    headers: { accept: 'application/vnd.github+json', 'user-agent': 'ZehnoraDesktop', 'x-github-api-version': '2022-11-28', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    headers: { accept: 'application/vnd.github+json', 'user-agent': 'MaitreDesktop', 'x-github-api-version': '2022-11-28', ...(token ? { authorization: `Bearer ${token}` } : {}) },
     signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
   });
   if (response.status === 403 || response.status === 429) throw new ToolError('GitHub rate limit reached; add a GitHub token in Settings or wait a minute.');

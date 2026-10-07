@@ -5,7 +5,7 @@ import { api } from '../state';
 import { Icon } from './Icon';
 
 const PLACEHOLDER: Record<Mode, string> = {
-  chat: 'Message Zehnora…',
+  chat: 'Message Maitre…',
   work: 'Describe a task: build, fix, set up, search, run…',
 };
 
@@ -148,7 +148,7 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
         )}
       </div>
       <div className="composer-hint">
-        {mode === 'work' ? 'Work mode can change files and run programs on this computer. Risky actions ask you first.' : 'Zehnora can make mistakes. Check important information.'} Drop PDF, Word or text files here.
+        {mode === 'work' ? 'Work mode can change files and run programs on this computer. Risky actions ask you first.' : 'Maitre can make mistakes. Check important information.'} Drop PDF, Word or text files here.
       </div>
     </div>
   );

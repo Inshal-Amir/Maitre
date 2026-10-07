@@ -1,7 +1,8 @@
 {
-  "productName": "Zehnora",
-  "desktopName": "Zehnora Desktop",
-  "apiName": "Zehnora API",
+  "productName": "Maitre",
+  "companyName": "Menthiq",
+  "desktopName": "Maitre Desktop",
+  "apiName": "Maitre API",
   "tagline": "Your coding assistant on your own GPU",
   "modelAlias": "zehnora-coder",
   "portalUrlPlaceholder": "https://console.<OWNER_DOMAIN>",

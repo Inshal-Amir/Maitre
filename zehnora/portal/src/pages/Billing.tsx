@@ -41,7 +41,7 @@ export default function Billing() {
       <section className="card">
         <div className="card-head"><h2><Gift size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />Get credits today</h2></div>
         <p className="small" style={{ margin: 0 }}>Until online payment is available, the administrator adds credits to your account. Send the email you signed in with
-          {me ? <> (<b>{me.user.email}</b>)</> : null} to the Zehnora team. Every grant and charge appears in your <Link to="/">credit history</Link>.</p>
+          {me ? <> (<b>{me.user.email}</b>)</> : null} to the Maitre team. Every grant and charge appears in your <Link to="/">credit history</Link>.</p>
       </section>
 
       <section className="card">
