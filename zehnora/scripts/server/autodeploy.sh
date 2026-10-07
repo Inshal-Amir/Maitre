@@ -35,7 +35,7 @@ build_portal() {
 }
 
 deploy() {
-  local old new changed tunnel=""
+  local old new changed="" tunnel=""
   git_owner fetch -q origin main || { say "fetch failed; will retry"; return; }
   old="$(git_owner rev-parse HEAD)"; new="$(git_owner rev-parse origin/main)"
   if [ "$old" != "$new" ]; then
