@@ -6,9 +6,9 @@ Thank you for testing Maitre. The app talks to the Maitre model running on our o
 
 | Computer | File |
 |---|---|
-| Windows 10/11 | `Maitre-Setup-0.5.0.exe` |
-| Mac with Apple Silicon (M1–M4) | `Maitre-0.5.0-mac-arm64.dmg` |
-| Mac with Intel | `Maitre-0.5.0-mac-x64.dmg` |
+| Windows 10/11 | `Maitre-Setup-0.5.1.exe` |
+| Mac with Apple Silicon (M1–M4) | `Maitre-0.5.1-mac-arm64.dmg` |
+| Mac with Intel | `Maitre-0.5.1-mac-x64.dmg` |
 
 The app is not yet signed by Apple/Microsoft, so the system warns once:
 - **Windows:** "Windows protected your PC" → **More info** → **Run anyway**.
