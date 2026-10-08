@@ -44,6 +44,14 @@ if [ -n "$model_dir" ] && [ "$model_dir" != "$old_model_dir" ] && [ -d "$old_mod
   mv "$old_model_dir" "$model_dir"
 fi
 
+if [ ! -f "$REPO/maitre/portal/dist/index.html" ]; then
+  if [ -f "$REPO/$OLD/portal/dist/index.html" ]; then
+    say "moving the built portal to maitre/portal/dist"; mkdir -p "$REPO/maitre/portal" && mv "$REPO/$OLD/portal/dist" "$REPO/maitre/portal/dist"
+  else
+    say "building the portal"; "$HERE/build-portal.sh"
+  fi
+fi
+
 . "$HERE/common.sh"
 say "renaming the databases, roles and model alias"
 dc up -d postgres >/dev/null

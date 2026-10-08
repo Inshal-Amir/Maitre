@@ -54,7 +54,10 @@ if [ "${1:-}" = "--with-tunnel" ]; then
   dc --profile tunnel up -d --remove-orphans cloudflared
   # The token is a mounted secret: a new token does not change the compose config, so restart to load it.
   stamp="$SECRETS/.cloudflared_token.sha"; sum="$(sha256sum "$tok" | cut -d' ' -f1)"
-  if [ "$(cat "$stamp" 2>/dev/null)" != "$sum" ]; then docker restart maitre-cloudflared-1 >/dev/null; printf '%s' "$sum" >"$stamp"; say "tunnel token changed: connector restarted"; fi
+  if [ "$(cat "$stamp" 2>/dev/null)" != "$sum" ]; then
+    docker restart maitre-cloudflared-1 >/dev/null; say "tunnel token changed: connector restarted"
+    { rm -f "$stamp" && printf '%s' "$sum" >"$stamp"; } 2>/dev/null || say "note: could not record the token stamp in $stamp"
+  fi
   say "tunnel connector started (menthiq.com)"
 fi
 say "model deployment: $MAITRE_MODEL_REPO @ ${MAITRE_MODEL_REVISION:0:12} ${MAITRE_MODEL_FILE:-} ($MAITRE_ENGINE, ctx ${MAITRE_MAX_MODEL_LEN:-})"
