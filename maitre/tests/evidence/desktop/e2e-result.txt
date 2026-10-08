@@ -1,0 +1,38 @@
+PASS window opens with sidebar
+PASS window title
+PASS renderer has no Node access, only the preload API
+PASS contextIsolation on, nodeIntegration off, sandbox on
+PASS first launch shows the account screen, no composer
+PASS unknown account shows the server error
+PASS creating an account connects the app (key created and stored)
+PASS model status online
+PASS chat reply streams and renders markdown
+PASS reasoning is shown as a collapsed block
+PASS chat mode sends only chat tools
+PASS chat appears in history
+PASS web search returns live results through the hidden browser
+PASS github search returns repositories
+PASS work mode writes a file in the working folder
+PASS tool card shows the finished write
+PASS working folder chip is shown
+PASS risky command shows an inline approval
+PASS denied command did not run
+PASS model is told about the denial
+PASS approved command runs
+PASS agent asks questions with clickable options first
+PASS answers go back to the agent
+PASS plan checklist is shown with progress
+PASS folder button shows the chosen working folder
+PASS agent is told to work in the chosen folder
+PASS commands run in the chosen folder
+PASS removing the folder chip goes back to the default folder
+PASS paperclip attaches a PDF and shows its pages
+PASS PDF text reaches the model with the message
+PASS sent message shows the file chip
+PASS settings dialog opens with policy options
+PASS settings show the account and its credits
+PASS connected apps list Google with its services
+PASS custom MCP server added from settings connects (3 tools)
+PASS agent uses the MCP tool in Chat mode
+PASS conversations are saved to disk
+37/37 passed on darwin 2026-10-08T07:26:18.900Z

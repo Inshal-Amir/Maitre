@@ -1,3 +1,0 @@
-- **Connect Google** now uses Maitre's own Google sign-in. If you connected Google in an earlier version, connect it again in Settings → Connected apps.
-- From 0.5.0: Zehnora is now **Maitre, by Menthiq** (https://maitre.menthiq.com, API https://api.menthiq.com/v1). Older versions used the retired dubg.dev addresses and can no longer connect.
-- Earlier in 0.4: choose the working folder in Work mode, a Work agent that plans first, file attachments (PDF, Word, text), memory, connected apps (Google, MCP), live streaming.

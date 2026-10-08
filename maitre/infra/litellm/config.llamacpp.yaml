@@ -1,0 +1,13 @@
+# SERVER PROFILE, engine "llamacpp" (default): maitre-coder -> llama.cpp server on the GPU PC (private network only).
+# llama-server exposes the model as maitre-upstream (--alias); same OpenAI-compatible path as the Mac dev profile.
+model_list:
+  - model_name: maitre-coder
+    litellm_params:
+      model: openai/maitre-upstream
+      api_base: os.environ/MODEL_API_BASE
+      api_key: os.environ/MODEL_API_KEY
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+litellm_settings:
+  telemetry: false

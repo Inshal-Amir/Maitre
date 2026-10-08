@@ -1,0 +1,154 @@
+# Maitre SERVER profile (university GPU PC, Docker Desktop with WSL2 + NVIDIA GPU).
+# Start with: maitre/scripts/server/start.sh   (never `docker compose down -v`: it deletes data)
+# Only nginx publishes a port, bound to 127.0.0.1 for the Cloudflare Tunnel connector and local tests.
+# Database, LiteLLM and the model have no published ports and live on the internal network.
+# The model service comes from model.<MAITRE_ENGINE>.yaml (llamacpp or vllm), added by scripts/server/common.sh.
+name: maitre
+
+x-restart: &restart
+  restart: unless-stopped
+
+networks:
+  internal:
+    internal: true        # no outbound internet: databases, gateway, model
+  edge: {}                # nginx + cloudflared (+ outbound for the tunnel)
+
+volumes:
+  pgdata: {}
+
+services:
+  postgres:
+    <<: *restart
+    image: postgres:17.6
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_superuser_password   # read by the entrypoint while still root
+    # The maitre_platform / maitre_litellm roles and databases are created and kept in sync with the
+    # secret files by scripts/server/start.sh (init scripts run as the postgres user and cannot read them).
+    secrets: [pg_superuser_password]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 30
+
+  litellm:
+    <<: *restart
+    build: { context: ../litellm, dockerfile: Dockerfile }
+    image: maitre/litellm:1.102.0
+    depends_on:
+      postgres: { condition: service_healthy }
+      model: { condition: service_healthy }
+    environment:
+      MODEL_API_BASE: http://model:8000/v1
+      LITELLM_TELEMETRY: "False"
+      DISABLE_ADMIN_UI: "True"
+      STORE_MODEL_IN_DB: "False"
+    secrets: [litellm_master_key, vllm_api_key, pg_litellm_password]
+    command: ["/app/litellm-entrypoint.sh", "config.${MAITRE_ENGINE:-llamacpp}.yaml"]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:4000/health/liveliness')\""]
+      interval: 10s
+      retries: 30
+
+  platform-api:
+    <<: *restart
+    build: { context: ../../platform-api, dockerfile: Dockerfile }
+    image: maitre/platform-api:0.1.0
+    depends_on:
+      postgres: { condition: service_healthy }
+      litellm: { condition: service_healthy }
+    env_file: [../../../.server-secrets/platform.env]   # generated on the PC, never committed
+    environment:
+      MAITRE_PROFILE: gpu
+      MAITRE_LITELLM_BASE_URL: http://litellm:4000
+      MAITRE_COOKIE_SECURE: "true"
+    networks: [internal, edge]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:8200/platform/v1/health')\""]
+      interval: 10s
+      retries: 30
+
+  nginx:
+    <<: *restart
+    image: nginx:1.29.8-alpine
+    depends_on:
+      platform-api: { condition: service_healthy }
+    volumes:
+      - ./nginx/maitre.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ../../portal/dist:/usr/share/nginx/portal:ro
+    environment:
+      COMPANY_DOMAIN: ${COMPANY_DOMAIN:-menthiq.com}
+      CONSOLE_HOST: ${CONSOLE_HOST:-maitre.menthiq.com}
+      API_HOST: ${API_HOST:-api.menthiq.com}
+      NGINX_ENVSUBST_FILTER: COMPANY_DOMAIN|CONSOLE_HOST|API_HOST
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks: [edge]
+
+  cloudflared:
+    <<: *restart
+    image: cloudflare/cloudflared:2026.9.1
+    profiles: [tunnel]      # started only after local tests pass: start.sh --with-tunnel
+    depends_on: [nginx]
+    # Runs as the host user that owns .server-secrets (mode 600) so it can read the token file.
+    user: "${MAITRE_HOST_UID:-1000}:${MAITRE_HOST_GID:-1000}"
+    command: tunnel --no-autoupdate run --token-file /run/secrets/cloudflared_token_menthiq
+    secrets: [cloudflared_token_menthiq]
+    networks: [edge]
+
+
+  guard:
+    <<: *restart
+    build: { context: ../guard, dockerfile: Dockerfile }
+    image: maitre/guard:0.1.0
+    # Watches GPU temperature/throttling and free RAM; stops the model to cool down or shut down (scripts/server/guard.sh).
+    environment:
+      MAITRE_HOST_UID: ${MAITRE_HOST_UID:-1000}
+      MAITRE_HOST_GID: ${MAITRE_HOST_GID:-1000}
+      MAITRE_GUARD_INTERVAL: ${MAITRE_GUARD_INTERVAL:-10}
+      MAITRE_GUARD_COOLDOWN_C: ${MAITRE_GUARD_COOLDOWN_C:-80}
+      MAITRE_GUARD_RESUME_C: ${MAITRE_GUARD_RESUME_C:-70}
+      MAITRE_GUARD_SHUTDOWN_C: ${MAITRE_GUARD_SHUTDOWN_C:-87}
+      MAITRE_GUARD_MAX_COOLDOWN_S: ${MAITRE_GUARD_MAX_COOLDOWN_S:-900}
+      MAITRE_GUARD_MIN_RAM_MIB: ${MAITRE_GUARD_MIN_RAM_MIB:-1024}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${MAITRE_REPO_DIR:?run through scripts/server}:${MAITRE_REPO_DIR:?run through scripts/server}
+    command: ["${MAITRE_REPO_DIR}/maitre/scripts/server/guard.sh"]
+    network_mode: none      # needs no network; talks to Docker through the socket
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  deployer:
+    <<: *restart
+    build: { context: ../deployer, dockerfile: Dockerfile }
+    image: maitre/deployer:0.1.0
+    profiles: [autodeploy]  # enabled by scripts/server/enable-autodeploy.sh
+    environment:
+      MAITRE_HOST_UID: ${MAITRE_HOST_UID:-1000}
+      MAITRE_HOST_GID: ${MAITRE_HOST_GID:-1000}
+      MAITRE_DEPLOY_INTERVAL: ${MAITRE_DEPLOY_INTERVAL:-300}
+    # Same absolute path as on the host, so compose bind mounts started from inside resolve to host paths.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${MAITRE_REPO_DIR:?run through scripts/server}:${MAITRE_REPO_DIR:?run through scripts/server}
+      - ${MAITRE_MODEL_DIR:?set MAITRE_MODEL_DIR in server.env}:${MAITRE_MODEL_DIR:?set MAITRE_MODEL_DIR in server.env}:ro  # start.sh checks the model file
+    command: ["${MAITRE_REPO_DIR}/maitre/scripts/server/autodeploy.sh"]
+    networks: [edge]        # outbound internet for git fetch
+
+secrets:
+  pg_superuser_password: { file: ../../../.server-secrets/pg_superuser_password }
+  pg_platform_password: { file: ../../../.server-secrets/pg_platform_password }
+  pg_litellm_password: { file: ../../../.server-secrets/pg_litellm_password }
+  litellm_master_key: { file: ../../../.server-secrets/litellm_master_key }
+  vllm_api_key: { file: ../../../.server-secrets/vllm_api_key }
+  cloudflared_token_menthiq: { file: ../../../.server-secrets/cloudflared_token_menthiq }

@@ -1,8 +1,8 @@
-# Third-party notices (Zehnora additions)
+# Third-party notices (Maitre additions)
 
-Zehnora is built on **LibreChat** (https://github.com/danny-avila/LibreChat, v0.8.7, MIT License, © LibreChat contributors). LibreChat's license and notices at the repository root are kept unchanged. Rebranding does not grant access to any features beyond those in the open-source release.
+Maitre is built on **LibreChat** (https://github.com/danny-avila/LibreChat, v0.8.7, MIT License, © LibreChat contributors). LibreChat's license and notices at the repository root are kept unchanged. Rebranding does not grant access to any features beyond those in the open-source release.
 
-Zehnora code under `zehnora/` uses these third-party components (versions pinned in the lock files):
+Maitre code under `maitre/` uses these third-party components (versions pinned in the lock files):
 
 | Component | Use | License |
 |---|---|---|

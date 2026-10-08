@@ -1,0 +1,85 @@
+# Maitre Desktop client profile for LibreChat v0.8.7.
+# Rendered by maitre/scripts/mac/start-desktop.sh (placeholders __REPO__, __WORKSPACE_CONFIG__, ...).
+# No secrets here: the customer API key comes from ${MAITRE_API_KEY} in the LibreChat process
+# environment, supplied by the Electron shell / launcher (never the browser renderer).
+version: 1.3.13
+cache: true
+
+interface:
+  customWelcome: 'Maitre Desktop: your coding assistant. Files and commands stay in your selected workspace folder.'
+  modelSelect: true
+  parameters: true
+  presets: false
+  bookmarks: true
+  multiConvo: false
+  memories: false
+  webSearch: false
+  fileSearch: false
+  runCode: false
+  agents:
+    use: true
+    create: true
+    share: false
+    public: false
+  mcpServers:
+    use: true
+    create: false
+    share: false
+    public: false
+  marketplace:
+    use: false
+
+registration:
+  socialLogins: []
+
+mcpServers:
+  maitre-workspace:
+    type: stdio
+    command: '__REPO__/maitre/connectors/workspace/.venv/bin/python'
+    args: ['-m', 'maitre_workspace.server']
+    env:
+      PYTHONPATH: '__REPO__/maitre/connectors/workspace'
+      MAITRE_CONNECTOR_CONFIG: '__WORKSPACE_CONFIG__'
+      MAITRE_CONNECTOR_DATA: '__CONNECTOR_DATA__'
+      MAITRE_APPROVAL_URL: '__APPROVAL_URL__'
+      MAITRE_APPROVAL_SECRET_FILE: '__APPROVAL_SECRET_FILE__'
+      PLAYWRIGHT_BROWSERS_PATH: '__PLAYWRIGHT_BROWSERS__'
+    description: 'Files, commands, dev servers and page checks inside the selected workspace folder'
+    startup: true
+    chatMenu: false
+    serverInstructions: false
+    initTimeout: 30000
+    timeout: 960000 # run_command allows up to 900 s for bounded dependency installs
+  maitre-search:
+    type: stdio
+    command: '__REPO__/maitre/connectors/search/.venv/bin/python'
+    args: ['-m', 'maitre_search.server']
+    env:
+      PYTHONPATH: '__REPO__/maitre/connectors/search'
+      MAITRE_SEARXNG_URL: 'http://127.0.0.1:8888'
+      MAITRE_SEARCH_LOG: '__CONNECTOR_DATA__/search.jsonl'
+    description: 'Web search (SearXNG) and public page reading; needs internet'
+    startup: true
+    chatMenu: false
+    serverInstructions: false
+    initTimeout: 30000
+    timeout: 60000
+
+endpoints:
+  agents:
+    # LangGraph steps (model step + tool step per round): 25 ~ 12 tool rounds (standard mode);
+    # agents may be raised to 81 (~40 rounds) for the extended full-project mode.
+    recursionLimit: 25
+    maxRecursionLimit: 81
+    disableBuilder: false
+    capabilities: ['tools']
+  custom:
+    - name: 'Maitre'
+      apiKey: '${MAITRE_API_KEY}'
+      baseURL: '${MAITRE_API_BASE}'
+      models:
+        default: ['maitre-coder']
+        fetch: false
+      titleConvo: false
+      summarize: false
+      modelDisplayLabel: 'Maitre'

@@ -1,0 +1,227 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { AccountStatus, ApprovalRequest, Attachment, ConnectorStatus, Memory, QuestionRequest, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, MaitreApi } from '../shared/types';
+
+declare global {
+  interface Window {
+    maitre: MaitreApi;
+  }
+}
+
+export const api = (): MaitreApi => window.maitre;
+
+const LAST_MODE_KEY = 'maitre.mode';
+
+function readMode(): Mode {
+  try {
+    return localStorage.getItem(LAST_MODE_KEY) === 'work' ? 'work' : 'chat';
+  } catch {
+    return 'chat';
+  }
+}
+
+function upsertMessage(messages: Message[], message: Message): Message[] {
+  const index = messages.findIndex((existing) => existing.id === message.id);
+  if (index < 0) return [...messages, message];
+  const next = messages.slice();
+  next[index] = message;
+  return next;
+}
+
+function upsertSummary(list: ConversationSummary[], summary: ConversationSummary): ConversationSummary[] {
+  const rest = list.filter((entry) => entry.id !== summary.id);
+  return [summary, ...rest].sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export interface AppState {
+  mode: Mode;
+  conversations: ConversationSummary[];
+  active: Conversation | null;
+  running: Set<string>;
+  approvals: ApprovalRequest[];
+  questions: QuestionRequest[];
+  processes: ProcessInfo[];
+  settings: Settings | null;
+  status: ModelStatus | null;
+  account: AccountStatus | null;
+  connectors: ConnectorStatus[];
+  memories: Memory[];
+  waiting: Map<string, 'compacting' | 'model'>;
+  signOut(): Promise<void>;
+  setMode(mode: Mode): void;
+  open(id: string): Promise<void>;
+  newChat(mode?: Mode): Promise<void>;
+  send(text: string, attachments?: Attachment[]): Promise<void>;
+  stop(): void;
+  remove(id: string): Promise<void>;
+  rename(id: string, title: string): Promise<void>;
+  changeWorkDir(): Promise<void>;
+  /** Folder picked for the next new Work task (before it exists). */
+  pendingFolder: string | null;
+  chooseFolder(): Promise<void>;
+  clearFolder(): Promise<void>;
+  saveSettings(settings: Parameters<MaitreApi['saveSettings']>[0]): Promise<void>;
+  refreshStatus(): Promise<void>;
+}
+
+export function useAppState(): AppState {
+  const [mode, setModeState] = useState<Mode>(readMode);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [active, setActive] = useState<Conversation | null>(null);
+  const [running, setRunning] = useState<Set<string>>(new Set());
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [questions, setQuestions] = useState<QuestionRequest[]>([]);
+  const [processes, setProcesses] = useState<ProcessInfo[]>([]);
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [status, setStatus] = useState<ModelStatus | null>(null);
+  const [pendingFolder, setPendingFolder] = useState<string | null>(null);
+  const [account, setAccount] = useState<AccountStatus | null>(null);
+  const [connectors, setConnectors] = useState<ConnectorStatus[]>([]);
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [waiting, setWaiting] = useState<Map<string, 'compacting' | 'model'>>(new Map());
+
+  const refreshStatus = useCallback(async () => {
+    const [model, who, current] = await Promise.all([api().modelStatus(), api().accountStatus(), api().getSettings()]);
+    setStatus(model);
+    setAccount(who);
+    setSettings(current);
+  }, []);
+
+  useEffect(() => {
+    api().listConversations().then(setConversations);
+    api().getSettings().then(setSettings);
+    api().listProcesses().then(setProcesses);
+    api().listConnectors().then(setConnectors);
+    api().listMemories().then(setMemories);
+    refreshStatus();
+    const timer = setInterval(refreshStatus, 60_000);
+    const off = api().onEvent((event) => {
+      if (event.type === 'message') {
+        setActive((current) => (current && current.id === event.conversationId ? { ...current, messages: upsertMessage(current.messages, event.message) } : current));
+      } else if (event.type === 'conversation') {
+        setConversations((list) => upsertSummary(list, event.summary));
+        setActive((current) => (current && current.id === event.summary.id ? { ...current, ...event.summary } : current));
+      } else if (event.type === 'run-state') {
+        setRunning((set) => {
+          const next = new Set(set);
+          if (event.running) next.add(event.conversationId);
+          else next.delete(event.conversationId);
+          return next;
+        });
+        if (!event.running) setWaiting((map) => {
+          const next = new Map(map);
+          next.delete(event.conversationId);
+          return next;
+        });
+      } else if (event.type === 'approval') {
+        setApprovals((list) => [...list, event.request]);
+      } else if (event.type === 'approval-resolved') {
+        setApprovals((list) => list.filter((request) => request.id !== event.id));
+      } else if (event.type === 'question') {
+        setQuestions((list) => [...list, event.request]);
+      } else if (event.type === 'question-resolved') {
+        setQuestions((list) => list.filter((request) => request.id !== event.id));
+      } else if (event.type === 'processes') {
+        setProcesses(event.processes);
+      } else if (event.type === 'memories') {
+        setMemories(event.memories);
+      } else if (event.type === 'waiting') {
+        setWaiting((map) => {
+          const next = new Map(map);
+          if (event.phase) next.set(event.conversationId, event.phase);
+          else next.delete(event.conversationId);
+          return next;
+        });
+      } else if (event.type === 'connectors') {
+        api().listConnectors().then(setConnectors);
+        api().getSettings().then(setSettings);
+      }
+    });
+    return () => {
+      off();
+      clearInterval(timer);
+    };
+  }, [refreshStatus]);
+
+  const setMode = useCallback((next: Mode) => {
+    setModeState(next);
+    try {
+      localStorage.setItem(LAST_MODE_KEY, next);
+    } catch {
+      /* storage can be unavailable */
+    }
+    setActive((current) => (current && current.mode !== next ? null : current));
+  }, []);
+
+  const open = useCallback(async (id: string) => {
+    const conversation = await api().getConversation(id);
+    if (!conversation) return;
+    setActive(conversation);
+    setModeState(conversation.mode);
+  }, []);
+
+  const newChat = useCallback(async (target?: Mode) => {
+    const conversation = await api().createConversation(target ?? mode, (target ?? mode) === 'work' ? pendingFolder ?? undefined : undefined);
+    setActive(conversation);
+    setPendingFolder(null);
+  }, [mode, pendingFolder]);
+
+  const send = useCallback(async (text: string, attachments: Attachment[] = []) => {
+    let conversation = active;
+    if (!conversation) {
+      conversation = await api().createConversation(mode, mode === 'work' ? pendingFolder ?? undefined : undefined);
+      setActive(conversation);
+      setPendingFolder(null);
+    }
+    await api().send(conversation.id, text, attachments.map((file) => file.id));
+  }, [active, mode, pendingFolder]);
+
+  const stop = useCallback(() => {
+    if (active) api().stop(active.id);
+  }, [active]);
+
+  const remove = useCallback(async (id: string) => {
+    await api().deleteConversation(id);
+    setConversations((list) => list.filter((entry) => entry.id !== id));
+    setActive((current) => (current?.id === id ? null : current));
+  }, []);
+
+  const rename = useCallback(async (id: string, title: string) => {
+    await api().renameConversation(id, title);
+  }, []);
+
+  const chooseFolder = useCallback(async () => {
+    const current = active?.mode === 'work' ? active.cwd : pendingFolder ?? undefined;
+    const dir = await api().chooseDirectory(current);
+    if (!dir) return;
+    if (active && active.mode === 'work') {
+      const used = await api().setConversationFolder(active.id, dir);
+      setActive((c) => (c ? { ...c, cwd: used, cwdChosen: true } : c));
+    } else {
+      setPendingFolder(dir);
+    }
+  }, [active, pendingFolder]);
+
+  const clearFolder = useCallback(async () => {
+    if (active && active.mode === 'work') {
+      const used = await api().setConversationFolder(active.id, null);
+      setActive((c) => (c ? { ...c, cwd: used, cwdChosen: false } : c));
+    }
+    setPendingFolder(null);
+  }, [active]);
+
+  const changeWorkDir = chooseFolder;
+
+  const saveSettings = useCallback(async (patch: Parameters<MaitreApi['saveSettings']>[0]) => {
+    setSettings(await api().saveSettings(patch));
+    await refreshStatus();
+  }, [refreshStatus]);
+
+  const signOut = useCallback(async () => {
+    await api().signOut();
+    await refreshStatus();
+  }, [refreshStatus]);
+
+  const visible = useMemo(() => conversations.filter((entry) => entry.mode === mode && entry.title !== 'New chat'), [conversations, mode]);
+
+  return { mode, conversations: visible, active, running, approvals, questions, processes, settings, status, account, connectors, memories, waiting, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, pendingFolder, chooseFolder, clearFolder, saveSettings, refreshStatus };
+}

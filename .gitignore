@@ -181,21 +181,21 @@ CLAUDE.md
 .gsd
 codedb.snapshot
 
-# ---- Zehnora additions ----
+# ---- Maitre additions ----
 .local-dev/
-zehnora/**/.env
-zehnora/**/.env.*
-!zehnora/**/.env.example
-zehnora/**/.venv/
-zehnora/**/node_modules/
-zehnora/**/dist/
-zehnora/**/__pycache__/
-zehnora/**/.pytest_cache/
-zehnora/**/*.sqlite3
-zehnora/**/*.db
-zehnora/**/logs/
-zehnora/**/secrets/
-zehnora/**/evidence/private/
+maitre/**/.env
+maitre/**/.env.*
+!maitre/**/.env.example
+maitre/**/.venv/
+maitre/**/node_modules/
+maitre/**/dist/
+maitre/**/__pycache__/
+maitre/**/.pytest_cache/
+maitre/**/*.sqlite3
+maitre/**/*.db
+maitre/**/logs/
+maitre/**/secrets/
+maitre/**/evidence/private/
 *.gguf
 *.safetensors
 models/
