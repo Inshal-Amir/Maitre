@@ -22,9 +22,38 @@ describe('carrying data over from the old name', () => {
     expect(fs.existsSync(path.join(userData, 'settings.json'))).toBe(true);
     expect(fs.existsSync(path.join(appData, 'Zehnora'))).toBe(false);
 
-    fs.mkdirSync(path.join(appData, 'Zehnora'));
+    fs.mkdirSync(path.join(appData, 'Zehnora', 'conversations'), { recursive: true });
     adoptOldUserData(appData, userData);
     expect(fs.existsSync(path.join(appData, 'Zehnora'))).toBe(true);
+  });
+
+  it('copies chats that exist only in the old folder when both hold data', () => {
+    const appData = tmp();
+    const oldChats = path.join(appData, 'Zehnora', 'conversations');
+    const newChats = path.join(appData, 'Maitre', 'conversations');
+    fs.mkdirSync(oldChats, { recursive: true });
+    fs.mkdirSync(newChats, { recursive: true });
+    fs.writeFileSync(path.join(oldChats, 'a.json'), 'old-a');
+    fs.writeFileSync(path.join(oldChats, 'b.json'), 'old-b');
+    fs.writeFileSync(path.join(newChats, 'b.json'), 'new-b');
+    adoptOldUserData(appData, path.join(appData, 'Maitre'));
+    expect(fs.readFileSync(path.join(newChats, 'a.json'), 'utf8')).toBe('old-a');
+    expect(fs.readFileSync(path.join(newChats, 'b.json'), 'utf8')).toBe('new-b');
+
+    fs.rmSync(path.join(newChats, 'a.json'));
+    adoptOldUserData(appData, path.join(appData, 'Maitre'));
+    expect(fs.existsSync(path.join(newChats, 'a.json'))).toBe(false);
+  });
+
+  it('replaces a new folder that holds only browser caches', () => {
+    const appData = tmp();
+    fs.mkdirSync(path.join(appData, 'Zehnora', 'conversations'), { recursive: true });
+    fs.writeFileSync(path.join(appData, 'Zehnora', 'conversations', 'chat.json'), '{}');
+    const userData = path.join(appData, 'Maitre');
+    fs.mkdirSync(path.join(userData, 'GPUCache'), { recursive: true });
+    adoptOldUserData(appData, userData);
+    expect(fs.existsSync(path.join(userData, 'conversations', 'chat.json'))).toBe(true);
+    expect(fs.existsSync(path.join(userData, 'GPUCache'))).toBe(false);
   });
 
   it('renames a project memory folder to .maitre', () => {

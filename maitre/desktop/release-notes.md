@@ -1,3 +1,4 @@
+- **Fix:** chats and settings from earlier versions now carry over to Maitre reliably.
 - **Fully Maitre:** every part of the app now uses the Maitre name, including the model (`maitre-coder`). Your chats, settings and work folder are carried over automatically.
 - **Update needed:** after the server switch to the new names, versions before 0.6.0 can no longer chat. Install this version over the old one (on Windows, uninstall the old "Zehnora" entry if it is still listed).
 - From 0.5: Maitre by Menthiq (https://maitre.menthiq.com, API https://api.menthiq.com/v1), Connect Google with Maitre's own Google sign-in.

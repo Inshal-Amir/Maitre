@@ -35,4 +35,4 @@ PASS connected apps list Google with its services
 PASS custom MCP server added from settings connects (3 tools)
 PASS agent uses the MCP tool in Chat mode
 PASS conversations are saved to disk
-37/37 passed on darwin 2026-10-08T07:26:18.900Z
+37/37 passed on darwin 2026-10-08T10:05:33.117Z
