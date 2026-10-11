@@ -1,35 +1,35 @@
 {
-  "version": "0.6.1",
-  "released": "2026-10-08",
-  "notes": "- **Fix:** chats and settings from earlier versions now carry over to Maitre reliably.\n- **Fully Maitre:** every part of the app now uses the Maitre name, including the model (`maitre-coder`). Your chats, settings and work folder are carried over automatically.\n- **Update needed:** after the server switch to the new names, versions before 0.6.0 can no longer chat. Install this version over the old one (on Windows, uninstall the old \"Zehnora\" entry if it is still listed).\n- From 0.5: Maitre by Menthiq (https://maitre.menthiq.com, API https://api.menthiq.com/v1), Connect Google with Maitre's own Google sign-in.",
-  "page": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/tag/v0.6.1",
+  "version": "0.6.2",
+  "released": "2026-10-11",
+  "notes": "- **New look:** a warm new theme (light and dark), a serif \"Maitre\" wordmark and the new Maitre logo as the app icon.\n- **Fix (0.6.1):** chats and settings from earlier versions now carry over to Maitre reliably.\n- **Fully Maitre:** every part of the app now uses the Maitre name, including the model (`maitre-coder`). Your chats, settings and work folder are carried over automatically.\n- **Update needed:** after the server switch to the new names, versions before 0.6.0 can no longer chat. Install this version over the old one (on Windows, uninstall the old \"Zehnora\" entry if it is still listed).\n- From 0.5: Maitre by Menthiq (https://maitre.menthiq.com, API https://api.menthiq.com/v1), Connect Google with Maitre's own Google sign-in.",
+  "page": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/tag/v0.6.2",
   "files": [
     {
       "id": "windows",
       "os": "Windows",
       "label": "Windows 10 and 11 (64-bit)",
-      "file": "Maitre-Setup-0.6.1.exe",
-      "size": 113702180,
-      "sha256": "4c89747f372dbb75a2885b80d61a0994858f52bc127549315075e2f8e25534f0",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.6.1/Maitre-Setup-0.6.1.exe"
+      "file": "Maitre-Setup-0.6.2.exe",
+      "size": 114033527,
+      "sha256": "588f638dbadb53b787aa4a3f80344a4346ee51a70ddc9ca63b19ee99fbec9e15",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.6.2/Maitre-Setup-0.6.2.exe"
     },
     {
       "id": "mac-arm64",
       "os": "macOS",
       "label": "Mac with Apple silicon (M1–M4)",
-      "file": "Maitre-0.6.1-mac-arm64.dmg",
-      "size": 129269151,
-      "sha256": "22c22ce2c09f61ab14e2c202a237f43176c6afaa6b0a3c94f6155bf98d038f7a",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.6.1/Maitre-0.6.1-mac-arm64.dmg"
+      "file": "Maitre-0.6.2-mac-arm64.dmg",
+      "size": 129600794,
+      "sha256": "d96824e9fa3ae22f597462a11f22b53797d633c197d895042baf615f0af80658",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.6.2/Maitre-0.6.2-mac-arm64.dmg"
     },
     {
       "id": "mac-x64",
       "os": "macOS",
       "label": "Mac with Intel processor",
-      "file": "Maitre-0.6.1-mac-x64.dmg",
-      "size": 136272451,
-      "sha256": "040ea1db617150dd06e72e9cb40bfe3df56328c9e7e28c67e40e144e0eb0feca",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.6.1/Maitre-0.6.1-mac-x64.dmg"
+      "file": "Maitre-0.6.2-mac-x64.dmg",
+      "size": 136570586,
+      "sha256": "fee87d53f6bf262afb229f22058116b6b733c4f2aee517c6bbb7c9cd57b5c392",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.6.2/Maitre-0.6.2-mac-x64.dmg"
     }
   ]
 }
