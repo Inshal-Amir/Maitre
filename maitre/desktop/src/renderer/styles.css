@@ -1,60 +1,63 @@
+/* Maitre theme: warm paper, ink text, forest green with a terracotta keystone. Shared with the Maitre Console. */
 :root {
-  --bg: #ffffff;
-  --panel: #f7f7f8;
-  --panel-2: #efeff1;
-  --line: #e5e5e8;
-  --line-strong: #d4d4d8;
-  --text: #18181b;
-  --text-2: #52525b;
-  --text-3: #8b8b93;
-  --accent: #111113;
-  --accent-text: #ffffff;
-  --brand: #5b4bdb;
-  --work: #0f8f83;
-  --ok: #16a34a;
-  --warn: #b7791f;
-  --bad: #dc2626;
-  --bubble: #f1f1f3;
-  --code-bg: #f6f6f7;
-  --hl-keyword: #cf222e;
-  --hl-string: #0a3069;
-  --hl-title: #8250df;
-  --hl-number: #0550ae;
-  --hl-comment: #6e7781;
-  --hl-attr: #116329;
-  --shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --bg: #fbf8f3;
+  --panel: #f4efe7;
+  --panel-2: #ece5da;
+  --line: #e7dfd2;
+  --line-strong: #d6cab8;
+  --text: #26211b;
+  --text-2: #5c5347;
+  --text-3: #8c8172;
+  --accent: #1f4a3d;
+  --accent-text: #fbf8f3;
+  --brand: #1f4a3d;
+  --work: #c4623a;
+  --ok: #2f7d55;
+  --warn: #a16207;
+  --bad: #b42318;
+  --bubble: #f1eadf;
+  --code-bg: #f6f1e9;
+  --hl-keyword: #b4442a;
+  --hl-string: #2f6b52;
+  --hl-title: #7a4f9a;
+  --hl-number: #a16207;
+  --hl-comment: #8c8172;
+  --hl-attr: #1f6b52;
+  --shadow: 0 12px 40px rgba(60, 40, 20, 0.14);
   --radius: 14px;
-  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', Inter, Roboto, 'Helvetica Neue', sans-serif;
+  --font: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', Roboto, sans-serif;
+  --serif: 'Fraunces Variable', Fraunces, Georgia, serif;
   --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  --logo: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2215%22 fill=%22%231F4A3D%22/%3E%3Cpath d=%22M15 46V30.5a8.5 8.5 0 0 1 17 0V46M32 30.5a8.5 8.5 0 0 1 17 0V46%22 fill=%22none%22 stroke=%22%23F7EFE2%22 stroke-width=%225%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M32 14.5l3.6 3.6-3.6 3.6-3.6-3.6z%22 fill=%22%23E08A5E%22/%3E%3C/svg%3E");
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1a1a1c;
-    --panel: #121214;
-    --panel-2: #232326;
-    --line: #2c2c30;
-    --line-strong: #3a3a3f;
-    --text: #ececef;
-    --text-2: #b1b1b8;
-    --text-3: #7c7c85;
-    --accent: #ececef;
-    --accent-text: #111113;
-    --brand: #8b7cff;
-    --work: #2ed3c3;
-    --ok: #4ade80;
-    --warn: #e3a94c;
-    --bad: #f87171;
-    --bubble: #2a2a2e;
-    --code-bg: #111113;
+    --bg: #1c1a17;
+    --panel: #161412;
+    --panel-2: #2b2722;
+    --line: #37312a;
+    --line-strong: #4a4238;
+    --text: #f2ebe1;
+    --text-2: #cdbfae;
+    --text-3: #9a8c7b;
+    --accent: #7fc1a5;
+    --accent-text: #10201a;
+    --brand: #7fc1a5;
+    --work: #e58a61;
+    --ok: #7fc1a5;
+    --warn: #e8b05c;
+    --bad: #f28b82;
+    --bubble: #2b2722;
+    --code-bg: #171512;
     --shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-    --hl-keyword: #ff7b72;
-    --hl-string: #a5d6ff;
-    --hl-title: #d2a8ff;
-    --hl-number: #79c0ff;
-    --hl-comment: #8b949e;
-    --hl-attr: #7ee787;
+    --hl-keyword: #f0946f;
+    --hl-string: #9fd3b5;
+    --hl-title: #d4b2f0;
+    --hl-number: #e8b05c;
+    --hl-comment: #8c8172;
+    --hl-attr: #8fd0b4;
   }
 }
 
@@ -75,8 +78,8 @@ code, pre { font-family: var(--mono); }
 .sidebar { width: 264px; flex: none; display: flex; flex-direction: column; background: var(--panel); border-right: 1px solid var(--line); }
 .sidebar-top { height: 52px; display: flex; align-items: center; padding: 0 16px; }
 .mac-true .sidebar-top { padding-left: 84px; }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 650; letter-spacing: -0.01em; }
-.brand-mark, .avatar, .welcome-mark { display: grid; place-items: center; border-radius: 8px; background: var(--brand); color: #fff; font-weight: 700; }
+.brand { display: flex; align-items: center; gap: 9px; font-family: var(--serif); font-size: 17px; font-weight: 600; letter-spacing: 0; }
+.brand-mark, .avatar, .welcome-mark { display: grid; place-items: center; border-radius: 8px; background: var(--logo) center / cover no-repeat; color: transparent; font-size: 0; overflow: hidden; }
 .brand-mark { width: 24px; height: 24px; font-size: 13px; }
 
 .mode-switch { margin: 6px 12px 4px; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; background: var(--panel-2); border-radius: 11px; }
@@ -131,8 +134,8 @@ code, pre { font-family: var(--mono); }
 
 /* Welcome */
 .welcome { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
-.welcome-mark { width: 48px; height: 48px; border-radius: 14px; font-size: 24px; margin-bottom: 18px; }
-.welcome h1 { margin: 0 0 6px; font-size: 28px; font-weight: 650; letter-spacing: -0.02em; }
+.welcome-mark { width: 52px; height: 52px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 6px 20px rgba(31, 74, 61, 0.25); }
+.welcome h1 { margin: 0 0 6px; font-family: var(--serif); font-size: 32px; font-weight: 600; letter-spacing: -0.01em; }
 .welcome p { margin: 0 0 28px; color: var(--text-2); }
 .suggestions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; max-width: 720px; }
 .suggestion { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 2px; align-items: center; text-align: left; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); color: var(--text-2); }
@@ -147,7 +150,7 @@ code, pre { font-family: var(--mono); }
 .turn.user { display: flex; justify-content: flex-end; }
 .bubble { max-width: 78%; background: var(--bubble); padding: 10px 16px; border-radius: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .turn.assistant { display: flex; gap: 14px; }
-.avatar { width: 28px; height: 28px; flex: none; font-size: 13px; margin-top: 2px; }
+.avatar { width: 28px; height: 28px; flex: none; margin-top: 2px; }
 .steps { flex: 1; min-width: 0; }
 .step + .step { margin-top: 6px; }
 .step-error { margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--bad) 10%, var(--bg)); color: var(--bad); font-size: 14px; border: 1px solid color-mix(in srgb, var(--bad) 30%, var(--line)); }

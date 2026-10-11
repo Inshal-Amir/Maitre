@@ -39,7 +39,7 @@ export default function App() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  if (loading) return <div className="boot"><span className="mark">{brand.productName[0]}</span></div>;
+  if (loading) return <div className="boot"><span className="mark" aria-hidden="true" /></div>;
   // The download page is a standalone public page (no sidebar), reachable signed in or out.
   if (pathname === '/download') return <SessionContext.Provider value={{ me, refresh, setMe }}><Download /></SessionContext.Provider>;
 
@@ -70,7 +70,7 @@ function Shell() {
   return (
     <div className={`layout ${pathname.startsWith('/playground') ? 'full' : ''}`}>
       <aside className="sidebar">
-        <div className="logo"><span className="mark">{brand.productName[0]}</span>{brand.productName}<span className="logo-sub">Console</span></div>
+        <div className="logo"><span className="mark" aria-hidden="true" />{brand.productName}<span className="logo-sub">Console</span></div>
         <nav>
           <NavItem to="/" icon={BarChart3} label="Overview" end />
           <NavItem to="/playground" icon={MessageSquare} label="Playground" />

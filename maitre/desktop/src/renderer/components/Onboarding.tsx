@@ -32,7 +32,7 @@ export function Onboarding({ status, onConnected, onUseKey }: { status: ModelSta
 
   return (
     <div className="welcome">
-      <div className="welcome-mark">Z</div>
+      <div className="welcome-mark" aria-hidden="true" />
       <h1>Welcome to Maitre</h1>
       <p>{create ? 'Create a free account to start chatting and working with Maitre.' : 'Sign in with your Maitre account.'}</p>
       <form className="onboard" onSubmit={submit} aria-label={create ? 'Create account' : 'Sign in'}>

@@ -65,7 +65,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   return (
     <div className="auth">
       <aside className="auth-hero">
-        <div className="logo"><span className="mark">{brand.productName[0]}</span>{brand.productName}<span className="logo-sub">Console</span></div>
+        <div className="logo"><span className="mark" aria-hidden="true" />{brand.productName}<span className="logo-sub">Console</span></div>
         <div>
           <h2>Build with an AI that runs on our own hardware.</h2>
           <p>Create API keys, follow your usage and try the model in the playground.</p>

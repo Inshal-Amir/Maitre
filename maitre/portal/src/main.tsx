@@ -5,6 +5,7 @@ import brand from '@brand/brand.json';
 import App from './App';
 import { applyStoredTheme } from './components/ui';
 import '@fontsource-variable/inter';
+import '@fontsource-variable/fraunces';
 import './styles.css';
 
 document.documentElement.lang = 'en';

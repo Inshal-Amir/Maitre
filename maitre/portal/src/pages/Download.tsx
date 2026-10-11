@@ -78,7 +78,7 @@ export default function Download() {
   return (
     <div className="download-page">
       <header className="download-top">
-        <Link to="/" className="logo"><span className="mark">{brand.productName[0]}</span>{brand.productName}</Link>
+        <Link to="/" className="logo"><span className="mark" aria-hidden="true" />{brand.productName}</Link>
         <div className="download-top-actions"><ThemeSwitch /><Link to="/" className="button-link">Console</Link></div>
       </header>
 

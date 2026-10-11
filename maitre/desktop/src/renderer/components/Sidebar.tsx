@@ -79,7 +79,7 @@ export function Sidebar({ mode, conversations, activeId, running, status, onMode
     <aside className="sidebar" aria-label="Conversations">
       <div className="sidebar-top drag">
         <div className="brand">
-          <span className="brand-mark">Z</span>
+          <span className="brand-mark" aria-hidden="true" />
           <span>Maitre</span>
         </div>
       </div>

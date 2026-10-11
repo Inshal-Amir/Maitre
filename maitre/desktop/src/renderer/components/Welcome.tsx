@@ -21,7 +21,7 @@ const SUGGESTIONS: Record<Mode, { icon: IconName; title: string; prompt: string 
 export function Welcome({ mode, onPick }: { mode: Mode; onPick(prompt: string): void }): ReactElement {
   return (
     <div className="welcome">
-      <div className="welcome-mark">Z</div>
+      <div className="welcome-mark" aria-hidden="true" />
       <h1>{mode === 'chat' ? 'How can I help today?' : 'What should we build?'}</h1>
       <p>{mode === 'chat' ? 'Ask anything. Maitre can search the web and GitHub for you.' : 'Maitre works on your computer: files, terminal, git and GitHub, Docker and databases.'}</p>
       <div className="suggestions">

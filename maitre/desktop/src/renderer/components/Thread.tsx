@@ -138,7 +138,7 @@ export function Thread({ messages, approvals, questions, plan, waiting, compacte
               </div>
             ) : (
               <div className="turn assistant">
-                <div className="avatar" aria-hidden="true">Z</div>
+                <div className="avatar" aria-hidden="true" />
                 <div className="steps">
                   {turn.steps.map((step, index) => <Step key={step.id} step={step} approvals={approvalByCall} questions={questionByCall} waiting={index === turn.steps.length - 1 ? waiting : undefined} />)}
                 </div>

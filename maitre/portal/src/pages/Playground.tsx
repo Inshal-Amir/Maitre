@@ -46,7 +46,7 @@ function Message({ m }: { m: Msg }) {
   const thinking = !!m.streaming && !answer;
   return (
     <div className="msg assistant">
-      <span className="mark" aria-hidden="true">{brand.productName[0]}</span>
+      <span className="mark" aria-hidden="true" />
       <div className="body">
         {reasoning && <Thinking text={reasoning} active={thinking} />}
         {answer ? <Markdown text={answer} streaming={m.streaming} /> : m.streaming && !reasoning && <div className="dots"><span /><span /><span /></div>}
@@ -173,7 +173,7 @@ export default function Playground() {
         <div className="messages" ref={scroller}>
           {empty ? (
             <div className="empty">
-              <span className="mark">{brand.productName[0]}</span>
+              <span className="mark" aria-hidden="true" />
               <h2>What are we building today?</h2>
               <p>Try the model before you use it from your own code.</p>
               <div className="suggestions">
