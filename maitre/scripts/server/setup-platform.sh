@@ -8,11 +8,10 @@ API=maitre-platform-api-1
 
 if [ "$MAITRE_ENGINE" = llamacpp ]; then
   identity="$MAITRE_MODEL_FILE ($MAITRE_MODEL_REPO @ ${MAITRE_MODEL_REVISION:0:7}), llama.cpp ${LLAMACPP_IMAGE_TAG:-server-cuda-v0.4.1}"
-  limits=(--context "${MAITRE_MAX_MODEL_LEN:-65536}" --max-output 16384 --default-output 8192)
 else
   identity="$MAITRE_MODEL_REPO @ ${MAITRE_MODEL_REVISION:0:7}, vLLM ${VLLM_IMAGE_TAG:-v0.29.0}"
-  limits=(--context "${MAITRE_MAX_MODEL_LEN:-65536}" --max-output 16384 --default-output 8192)
 fi
+limits=(--context "${MAITRE_MAX_MODEL_LEN:-65536}" --max-output "${MAITRE_MAX_OUTPUT:-16384}" --default-output "${MAITRE_DEFAULT_OUTPUT:-8192}")
 gpu="$(docker exec maitre-model-1 nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 || true)"
 docker exec "$API" python -m app.cli seed-model --alias maitre-coder --identity "$identity${gpu:+, $gpu}" "${limits[@]}"
 
