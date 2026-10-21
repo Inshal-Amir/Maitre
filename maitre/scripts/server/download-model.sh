@@ -21,7 +21,7 @@ if [ -n "${MAITRE_MODEL_FILE:-}" ]; then
   ( cd "$DEST" && sha256sum "$MAITRE_MODEL_FILE" >SHA256SUMS )
 else
   say "downloading $MAITRE_MODEL_REPO @ $MAITRE_MODEL_REVISION -> $DEST"
-  hf --exclude '*.gguf' '*.onnx' 'original/*'
+  hf --exclude '*.gguf' --exclude '*.onnx' --exclude 'original/*'
   for f in config.json tokenizer_config.json; do [ -f "$DEST/$f" ] || die "missing $f in download"; done
   ls "$DEST"/*.safetensors >/dev/null 2>&1 || die "no .safetensors weights found"
   ( cd "$DEST" && find . -type f ! -name 'SHA256SUMS' ! -path './.cache/*' -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS )

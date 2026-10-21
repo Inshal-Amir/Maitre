@@ -8,7 +8,12 @@ say() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 
 if [ "$("$NODE_DIR/bin/node" -v 2>/dev/null || true)" != "$NODE_VERSION" ]; then
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-  tarball="node-$NODE_VERSION-linux-x64.tar.xz"
+  case "$(uname -m)" in
+    x86_64) arch=x64 ;;
+    aarch64|arm64) arch=arm64 ;;
+    *) say "ERROR: unsupported CPU $(uname -m)"; exit 1 ;;
+  esac
+  tarball="node-$NODE_VERSION-linux-$arch.tar.xz"
   say "downloading Node $NODE_VERSION"
   curl -fsSL -o "$tmp/$tarball" "https://nodejs.org/dist/$NODE_VERSION/$tarball"
   curl -fsSL -o "$tmp/SHASUMS256.txt" "https://nodejs.org/dist/$NODE_VERSION/SHASUMS256.txt"

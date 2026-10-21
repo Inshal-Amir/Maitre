@@ -8,18 +8,21 @@ services:
       - ${MAITRE_MODEL_DIR:?set MAITRE_MODEL_DIR in server.env}:/models:ro
     environment:
       HF_HUB_OFFLINE: "1"   # never download at runtime; weights are pinned on disk
-    command: >
-      --model /models/${MAITRE_MODEL_SUBDIR:?set MAITRE_MODEL_SUBDIR}
-      --served-model-name maitre-upstream
-      --dtype bfloat16
-      --max-model-len ${MAITRE_MAX_MODEL_LEN:-4096}
-      --max-num-seqs ${MAITRE_MAX_NUM_SEQS:-1}
-      --gpu-memory-utilization ${MAITRE_GPU_MEM_UTIL:-0.90}
-      --enable-auto-tool-choice
-      --tool-call-parser ${MAITRE_TOOL_PARSER:?set MAITRE_TOOL_PARSER (verify with vllm serve --help)}
-      ${MAITRE_VLLM_EXTRA_ARGS:-}
-      --api-key-file /run/secrets/vllm_api_key
-      --host 0.0.0.0 --port 8000
+    # vLLM has no --api-key-file; it reads the key from VLLM_API_KEY, so the shell loads it from the secret.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        VLLM_API_KEY="$$(cat /run/secrets/vllm_api_key)" exec vllm serve
+        /models/${MAITRE_MODEL_SUBDIR:?set MAITRE_MODEL_SUBDIR}
+        --served-model-name maitre-upstream
+        --dtype bfloat16
+        --max-model-len ${MAITRE_MAX_MODEL_LEN:-4096}
+        --max-num-seqs ${MAITRE_MAX_NUM_SEQS:-1}
+        --gpu-memory-utilization ${MAITRE_GPU_MEM_UTIL:-0.90}
+        --enable-auto-tool-choice
+        --tool-call-parser ${MAITRE_TOOL_PARSER:?set MAITRE_TOOL_PARSER (verify with vllm serve --help)}
+        ${MAITRE_VLLM_EXTRA_ARGS:-}
+        --host 0.0.0.0 --port 8000
     secrets: [vllm_api_key]
     networks: [internal]
     ipc: host
@@ -33,5 +36,5 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8000/health || exit 1"]
       interval: 10s
-      retries: 60
+      retries: 120
       start_period: 120s
