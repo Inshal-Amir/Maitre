@@ -13,7 +13,8 @@ else
 fi
 limits=(--context "${MAITRE_MAX_MODEL_LEN:-65536}" --max-output "${MAITRE_MAX_OUTPUT:-16384}" --default-output "${MAITRE_DEFAULT_OUTPUT:-8192}")
 gpu="$(docker exec maitre-model-1 nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 || true)"
-docker exec "$API" python -m app.cli seed-model --alias maitre-coder --identity "$identity${gpu:+, $gpu}" "${limits[@]}"
+docker exec "$API" python -m app.cli seed-model --alias maitre-coder --identity "$identity${gpu:+, $gpu}" "${limits[@]}" \
+  --description "${MAITRE_MODEL_DESCRIPTION:-Maitre coding assistant model}"
 
 ENVF="$SECRETS/platform.env"
 set_env() { # name value: replace or append one line, keeping the file private
