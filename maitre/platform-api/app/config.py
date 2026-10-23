@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     # plus chat-template overhead per message and for tool preambles.
     template_overhead_tokens: int = 1024
     per_message_overhead_tokens: int = 16
+    # Qwen vision encoders cap an image at 16,777,216 pixels = 16,384 tokens (32x32 pixels per token).
+    image_token_upper_bound: int = 16384
 
     max_inflight_requests: int = 4  # beyond this: 429 capacity
     upstream_timeout_s: float = 600.0

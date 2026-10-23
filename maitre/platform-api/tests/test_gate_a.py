@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import time
 import uuid
@@ -417,6 +418,20 @@ def test_playground_streams_with_system_prompt_and_saves(admin, user):
     msgs = user.get(f"/platform/v1/playground/conversations/{conv['id']}").json()["messages"]
     assert [m["role"] for m in msgs] == ["user", "assistant"] and msgs[0]["content"] == "stream hello there"
     assert all(m["role"] != "system" for m in msgs), "the system prompt is not stored in the conversation"
+
+
+def test_playground_image_turn_sends_parts_and_keeps_a_marker(admin, user):
+    grant(admin, user, 100_000)
+    png = "data:image/png;base64," + base64.b64encode(b"\x89PNG\r\n\x1a\n" + b"0" * 64).decode()
+    conv = user.post("/platform/v1/playground/conversations", json={}).json()
+    r = user.post(f"/platform/v1/playground/conversations/{conv['id']}/messages", json={"content": "look here", "images": [png]})
+    assert r.status_code == 200 and r.json()["reply"].startswith("MOCK reply to: look here")
+    msgs = user.get(f"/platform/v1/playground/conversations/{conv['id']}").json()["messages"]
+    assert msgs[0]["content"] == "look here\n\n[1 image attached]" and "base64" not in msgs[0]["content"]
+    bad = user.post(f"/platform/v1/playground/conversations/{conv['id']}/messages", json={"content": "x", "images": ["data:text/plain;base64,aGk="]})
+    assert bad.status_code == 400 and bad.json()["error"]["code"] == "invalid_image"
+    many = user.post(f"/platform/v1/playground/conversations/{conv['id']}/messages", json={"content": "x", "images": [png] * 5})
+    assert many.status_code == 400
 
 
 def test_playground_stream_error_keeps_the_question(user):

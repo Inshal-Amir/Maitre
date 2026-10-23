@@ -43,17 +43,33 @@ def _content_bytes(value) -> int:
     return len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
 
 
+def _without_images(messages: list) -> tuple[list, int]:
+    """Messages with image parts removed, and how many images there were (their base64 is not prompt text)."""
+    images = 0
+    stripped = []
+    for message in messages:
+        content = message.get("content") if isinstance(message, dict) else None
+        if not isinstance(content, list):
+            stripped.append(message)
+            continue
+        parts = [part for part in content if not (isinstance(part, dict) and part.get("type") == "image_url")]
+        images += len(content) - len(parts)
+        stripped.append({**message, "content": parts})
+    return stripped, images
+
+
 def input_token_upper_bound(body: dict, context_limit: int) -> int:
     """Safe upper bound on prompt tokens without a tokenizer.
 
     Byte-level BPE (the Qwen family) emits tokens that each decode to >= 1 byte,
-    so text tokens <= UTF-8 bytes. Chat-template special tokens and the tool
-    preamble are covered by fixed overheads. Capped at the enforced context limit.
+    so text tokens <= UTF-8 bytes. Each image counts as the vision encoder's
+    per-image maximum. Chat-template special tokens and the tool preamble are
+    covered by fixed overheads. Capped at the enforced context limit.
     """
     s = get_settings()
-    messages = body.get("messages") or []
+    messages, images = _without_images(body.get("messages") or [])
     raw = _content_bytes(messages) + (_content_bytes(body.get("tools")) if body.get("tools") else 0)
-    bound = raw + s.per_message_overhead_tokens * len(messages) + s.template_overhead_tokens
+    bound = raw + images * s.image_token_upper_bound + s.per_message_overhead_tokens * len(messages) + s.template_overhead_tokens
     return min(bound, context_limit)
 
 

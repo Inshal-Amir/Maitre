@@ -27,7 +27,7 @@ function GoogleLogo() {
 }
 
 const POINTS = [
-  { icon: Cpu, title: 'Our own model on our own GPU', text: 'Qwen3.8-Flash-Next (a 125B mixture-of-experts coding model with a 262K-token context), served from the Maitre GPU server — your requests never go to a third-party AI provider.' },
+  { icon: Cpu, title: 'Our own model on our own GPU', text: 'Qwen3.8-Flash-Next (a 125B mixture-of-experts coding model with a 1M-token context that also reads images), served from the Maitre GPU server — your requests never go to a third-party AI provider.' },
   { icon: KeyRound, title: 'OpenAI-compatible API', text: 'Use the OpenAI SDK, LangChain or curl with your Maitre key and base URL.' },
   { icon: ShieldCheck, title: 'Credits you can see', text: 'Every request is reserved, charged on real usage and listed in your history.' },
 ];

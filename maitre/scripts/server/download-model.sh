@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Download the configured model at its PINNED revision to MAITRE_MODEL_DIR (outside git), then verify it and
 # record SHA-256 sums. With MAITRE_MODEL_FILE set (llamacpp) only that GGUF file is fetched and must match
-# MAITRE_MODEL_SHA256; otherwise (vllm) the safetensors snapshot is fetched. GPU PC only - never on the Mac.
+# MAITRE_MODEL_SHA256 (plus the vision file MAITRE_MMPROJ_FILE / MAITRE_MMPROJ_SHA256 when set); otherwise (vllm) the safetensors snapshot is fetched. GPU PC only - never on the Mac.
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 : "${MAITRE_MODEL_REPO:?}" "${MAITRE_MODEL_REVISION:?}" "${MAITRE_MODEL_SUBDIR:?}" "${MAITRE_MODEL_DIR:?}"
 [[ "$MAITRE_MODEL_REVISION" =~ ^[0-9a-f]{40}$ ]] || die "MAITRE_MODEL_REVISION must be a full 40-character commit sha"
@@ -19,6 +19,7 @@ if [ -n "${MAITRE_MODEL_FILE:-}" ]; then
       files+=("$(printf '%s%05d-of-%s.gguf' "${BASH_REMATCH[1]}" "$i" "${BASH_REMATCH[2]}")"); done
   fi
   IFS=, read -ra sums <<<"${MAITRE_MODEL_SHA256:-}"
+  if [ -n "${MAITRE_MMPROJ_FILE:-}" ]; then files+=("$MAITRE_MMPROJ_FILE"); sums+=("${MAITRE_MMPROJ_SHA256:-}"); fi
   [ "${#sums[@]}" -eq "${#files[@]}" ] || die "MAITRE_MODEL_SHA256 needs ${#files[@]} sha256 value(s), comma separated; got ${#sums[@]}"
   for s in "${sums[@]}"; do [[ "$s" =~ ^[0-9a-f]{64}$ ]] || die "not a 64-character sha256 in MAITRE_MODEL_SHA256: $s"; done
   need_gb=$((30 * ${#files[@]}))

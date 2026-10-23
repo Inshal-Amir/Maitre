@@ -16,5 +16,7 @@ export CONSOLE_HOST="${CONSOLE_HOST:-maitre.$COMPANY_DOMAIN}" API_HOST="${API_HO
 MAITRE_ENGINE="${MAITRE_ENGINE:-llamacpp}"
 case "$MAITRE_ENGINE" in llamacpp|vllm) ;; *) die "MAITRE_ENGINE must be llamacpp or vllm (got: $MAITRE_ENGINE)" ;; esac
 MODEL_PATH="$MAITRE_MODEL_DIR/$MAITRE_MODEL_SUBDIR${MAITRE_MODEL_FILE:+/$MAITRE_MODEL_FILE}"
+# Vision: the model's image encoder (mmproj GGUF, same folder). Unset = text only (--no-mmproj).
+export MAITRE_MMPROJ_ARGS="${MAITRE_MMPROJ_FILE:+--mmproj /models/$MAITRE_MODEL_SUBDIR/$MAITRE_MMPROJ_FILE}"
 dc() { docker compose --project-directory "$COMPOSE_DIR" -f "$COMPOSE_DIR/compose.yaml" -f "$COMPOSE_DIR/model.$MAITRE_ENGINE.yaml" \
   --env-file "$SECRETS/server.env" "$@"; }

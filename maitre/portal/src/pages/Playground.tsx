@@ -1,13 +1,25 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowUp, Brain, ChevronRight, SquarePen, Square, Trash2 } from 'lucide-react';
+import { ArrowUp, Brain, ChevronRight, ImagePlus, SquarePen, Square, Trash2, X } from 'lucide-react';
 import { api, streamPost } from '../api';
 import { ErrorNote, useSession } from '../App';
 import Markdown, { CopyButton } from '../components/Markdown';
 import brand from '@brand/brand.json';
 
 interface Conv { id: string; title: string; model: string; updated_at: string }
-interface Msg { id: string; role: string; content: string; reasoning?: string; streaming?: boolean }
+interface Msg { id: string; role: string; content: string; reasoning?: string; streaming?: boolean; images?: string[] }
+interface Picked { id: string; name: string; url: string }
+
+const MAX_IMAGES = 4;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+
+const readDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result));
+  reader.onerror = () => reject(reader.error ?? new Error(`Could not read ${file.name}.`));
+  reader.readAsDataURL(file);
+});
 
 const SUGGESTIONS = [
   'Write a Python function that validates an email address, with tests',
@@ -39,7 +51,14 @@ function Thinking({ text, active }: { text: string; active: boolean }) {
 }
 
 function Message({ m }: { m: Msg }) {
-  if (m.role === 'user') return <div className="msg user"><div className="bubble">{m.content}</div></div>;
+  if (m.role === 'user') return (
+    <div className="msg user">
+      <div className="user-stack">
+        {!!m.images?.length && <div className="msg-images">{m.images.map((url, i) => <img key={i} src={url} alt={`Attached image ${i + 1}`} />)}</div>}
+        {m.content && <div className="bubble">{m.content}</div>}
+      </div>
+    </div>
+  );
   const inline = splitThinking(m.content);
   const reasoning = (m.reasoning ?? '') + inline.reasoning;
   const answer = inline.answer.trim();
@@ -63,6 +82,9 @@ export default function Playground() {
   const [convs, setConvs] = useState<Conv[]>([]);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState('');
+  const [images, setImages] = useState<Picked[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const filePicker = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const scroller = useRef<HTMLDivElement>(null);
@@ -101,16 +123,51 @@ export default function Playground() {
 
   const patchLast = (fn: (m: Msg) => Msg) => setMessages((ms) => (ms.length ? [...ms.slice(0, -1), fn(ms[ms.length - 1])] : ms));
 
+  const addImages = async (files: File[]) => {
+    const wanted = files.filter((f) => f.type.startsWith('image/'));
+    if (!wanted.length) return;
+    const unsupported = wanted.find((f) => !IMAGE_TYPES.includes(f.type));
+    const tooBig = wanted.find((f) => f.size > MAX_IMAGE_BYTES);
+    const room = MAX_IMAGES - images.length;
+    if (unsupported) setError(new Error(`${unsupported.name}: only PNG, JPEG, WebP and GIF images are supported.`));
+    else if (tooBig) setError(new Error(`${tooBig.name} is larger than 8 MB.`));
+    else if (wanted.length > room) setError(new Error(`You can attach up to ${MAX_IMAGES} images per message.`));
+    const ok = wanted.filter((f) => IMAGE_TYPES.includes(f.type) && f.size <= MAX_IMAGE_BYTES).slice(0, Math.max(0, room));
+    try {
+      const picked = await Promise.all(ok.map(async (f, i) => ({ id: `${Date.now()}-${i}-${f.name}`, name: f.name, url: await readDataUrl(f) })));
+      setImages((cur) => [...cur, ...picked].slice(0, MAX_IMAGES));
+    } catch (err) { setError(err); }
+  };
+
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(e.clipboardData.files);
+    if (!files.some((f) => f.type.startsWith('image/'))) return;
+    e.preventDefault();
+    addImages(files);
+  };
+  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragging(false);
+    addImages(Array.from(e.dataTransfer.files));
+  };
+  const onDragOver = (e: DragEvent<HTMLDivElement>) => {
+    if (!Array.from(e.dataTransfer.types).includes('Files')) return;
+    e.preventDefault();
+    setDragging(true);
+  };
+
   const send = async (content: string) => {
-    if (!content.trim() || busy) return;
+    const attached = images.map((img) => img.url);
+    if ((!content.trim() && !attached.length) || busy) return;
     stick.current = true;
     setBusy(true);
     setError(null);
     setText('');
+    setImages([]);
     const controller = new AbortController();
     abort.current = controller;
     let cid = id;
-    setMessages((ms) => [...ms, { id: `u-${Date.now()}`, role: 'user', content },
+    setMessages((ms) => [...ms, { id: `u-${Date.now()}`, role: 'user', content, ...(attached.length ? { images: attached } : {}) },
       { id: `a-${Date.now()}`, role: 'assistant', content: '', reasoning: '', streaming: true }]);
     try {
       if (!cid) {
@@ -118,7 +175,7 @@ export default function Playground() {
         createdHere.current = cid;
         navigate(`/playground/${cid}`, { replace: true });
       }
-      await streamPost(`/playground/conversations/${cid}/messages`, { content, stream: true }, (d) =>
+      await streamPost(`/playground/conversations/${cid}/messages`, { content, images: attached, stream: true }, (d) =>
         patchLast((m) => ({ ...m, content: m.content + (d.content ?? ''), reasoning: (m.reasoning ?? '') + (d.reasoning ?? '') })), controller.signal);
     } catch (err) {
       if (!controller.signal.aborted) setError(err);
@@ -184,14 +241,31 @@ export default function Playground() {
             <div className="thread">{messages.map((m) => <Message key={m.id} m={m} />)}</div>
           )}
         </div>
-        <div className="composer-wrap">
+        <div className={`composer-wrap ${dragging ? 'dragging' : ''}`} onDragOver={onDragOver} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
           <ErrorNote error={error} />
+          {images.length > 0 && (
+            <div className="attachments" aria-label="Attached images">
+              {images.map((img) => (
+                <div key={img.id} className="attachment">
+                  <img src={img.url} alt={img.name} title={img.name} />
+                  <button type="button" className="attachment-remove" onClick={() => setImages((cur) => cur.filter((c) => c.id !== img.id))}
+                          aria-label={`Remove ${img.name}`}><X size={12} /></button>
+                </div>
+              ))}
+            </div>
+          )}
           <form className="composer" onSubmit={submit}>
-            <textarea ref={input} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKey}
+            <input ref={filePicker} type="file" accept={IMAGE_TYPES.join(',')} multiple hidden
+                   onChange={(e) => { addImages(Array.from(e.target.files ?? [])); e.target.value = ''; }} />
+            <button type="button" className="ghost icon attach" onClick={() => filePicker.current?.click()}
+                    disabled={busy || images.length >= MAX_IMAGES} aria-label="Attach images" title="Attach images (PNG, JPEG, WebP, GIF; up to 4, 8 MB each)">
+              <ImagePlus size={18} />
+            </button>
+            <textarea ref={input} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKey} onPaste={onPaste}
                       placeholder="Message maitre-coder" rows={1} aria-label="Message" autoFocus />
             {busy
               ? <button type="button" className="send stop" onClick={() => abort.current?.abort()} aria-label="Stop generating"><Square size={14} fill="currentColor" /></button>
-              : <button className="send" disabled={!text.trim()} aria-label="Send"><ArrowUp size={18} /></button>}
+              : <button className="send" disabled={!text.trim() && !images.length} aria-label="Send"><ArrowUp size={18} /></button>}
           </form>
           <p className="muted tiny center-text">Runs on our own GPU. Each message uses credits. Answers can be wrong; check important code.</p>
         </div>

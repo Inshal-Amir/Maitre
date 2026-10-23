@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
 import json
+import re
 import logging
 import uuid
 from collections.abc import AsyncIterator
@@ -291,10 +294,49 @@ class ConversationCreate(BaseModel):
     model: str = "maitre-coder"
 
 
+PLAYGROUND_MAX_IMAGES = 4
+PLAYGROUND_MAX_IMAGE_BYTES = 8 * 1024 * 1024
+_IMAGE_DATA_URL = re.compile(r"data:(image/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=\s]+)")
+
+
 class MessageCreate(BaseModel):
-    content: str = Field(min_length=1, max_length=20000)
+    content: str = Field(default="", max_length=20000)
+    images: list[str] = Field(default_factory=list, max_length=PLAYGROUND_MAX_IMAGES)
     max_tokens: int | None = Field(default=None, ge=1)
     stream: bool = False
+
+
+def validate_turn(body: MessageCreate) -> None:
+    """A turn needs text or at least one image; each image is a base64 data URL of a supported type, at most 8 MB."""
+    if not body.content.strip() and not body.images:
+        raise ApiError(400, "empty_message", "Write a message or attach an image.")
+    for index, url in enumerate(body.images, start=1):
+        match = _IMAGE_DATA_URL.fullmatch(url)
+        if match is None:
+            raise ApiError(400, "invalid_image", f"Image {index} must be a PNG, JPEG, WebP or GIF data URL.")
+        try:
+            size = len(base64.b64decode(match.group(2), validate=False))
+        except (binascii.Error, ValueError):
+            raise ApiError(400, "invalid_image", f"Image {index} is not valid base64.") from None
+        if size > PLAYGROUND_MAX_IMAGE_BYTES:
+            raise ApiError(400, "image_too_large", f"Image {index} is larger than 8 MB.")
+
+
+def user_turn_content(body: MessageCreate) -> str | list[dict]:
+    """The new user message for the model: plain text, or text plus image_url parts."""
+    if not body.images:
+        return body.content
+    parts: list[dict] = [{"type": "text", "text": body.content}] if body.content.strip() else []
+    return parts + [{"type": "image_url", "image_url": {"url": url}} for url in body.images]
+
+
+def saved_turn_text(body: MessageCreate) -> str:
+    """What the history keeps: the text and a marker for images (their data is not stored)."""
+    if not body.images:
+        return body.content
+    count = len(body.images)
+    marker = f"[{count} image{'s' if count > 1 else ''} attached]"
+    return f"{body.content}\n\n{marker}" if body.content.strip() else marker
 
 
 async def _own_conversation(db: AsyncSession, user_id, conv_id) -> PlaygroundConversation:
@@ -345,7 +387,7 @@ async def _turn_request(db: AsyncSession, conv: PlaygroundConversation, body: Me
     history = (await db.scalars(select(PlaygroundMessage).where(PlaygroundMessage.conversation_id == conv.id)
                                 .order_by(PlaygroundMessage.created_at))).all()
     messages = ([{"role": "system", "content": PLAYGROUND_SYSTEM}] + [{"role": m.role, "content": m.content} for m in history]
-                + [{"role": "user", "content": body.content}])
+                + [{"role": "user", "content": user_turn_content(body)}])
     req_body = {"model": model.alias, "messages": messages, "stream": body.stream}
     if body.max_tokens:
         req_body["max_tokens"] = body.max_tokens
@@ -382,7 +424,7 @@ async def _play(user_id: uuid.UUID, conv_id: uuid.UUID, body: MessageCreate, gat
         finally:
             await slot.__aexit__(None, None, None)
         reply = (data["choices"][0]["message"].get("content") or "").strip()
-        await _save_turn(db, conv, body.content, reply, rid)
+        await _save_turn(db, conv, saved_turn_text(body), reply, rid)
         return {"reply": reply, "request_id": rid, "usage": data.get("usage")}
 
 
@@ -451,7 +493,7 @@ async def _stream_turn(user_id: uuid.UUID, conv_id: uuid.UUID, body: MessageCrea
             result, request_id = start.result()
         except ApiError as exc:
             await slot.__aexit__(None, None, None)
-            _background(_save_streamed_turn(user_id, conv_id, body.content, "", exc.request_id or rid))
+            _background(_save_streamed_turn(user_id, conv_id, saved_turn_text(body), "", exc.request_id or rid))
             yield f"data: {json.dumps(error_body(exc.status, exc.code, exc.message, exc.request_id or rid))}\n\n".encode()
             yield b"data: [DONE]\n\n"
             return
@@ -460,7 +502,7 @@ async def _stream_turn(user_id: uuid.UUID, conv_id: uuid.UUID, body: MessageCrea
                 start.cancel()
             await slot.__aexit__(None, None, None)
             raise
-        relay = _relay_stream(result.body_iterator, slot, user_id, conv_id, body.content, request_id)
+        relay = _relay_stream(result.body_iterator, slot, user_id, conv_id, saved_turn_text(body), request_id)
         async for chunk in relay:
             yield chunk
 
@@ -468,6 +510,7 @@ async def _stream_turn(user_id: uuid.UUID, conv_id: uuid.UUID, body: MessageCrea
 @router.post("/playground/conversations/{conv_id}/messages")
 async def send_message(conv_id: uuid.UUID, body: MessageCreate, request: Request, p: Principal = Depends(current_session),
                        db: AsyncSession = Depends(get_db)):
+    validate_turn(body)
     conv = await _own_conversation(db, p.user.id, conv_id)
     gateway_key = get_settings().playground_gateway_key
     if not gateway_key:

@@ -17,7 +17,7 @@ services:
       --jinja
       --reasoning ${MAITRE_REASONING:-on}
       --temp ${MAITRE_TEMPERATURE:-0.6} --top-p ${MAITRE_TOP_P:-0.95} --top-k 20 --min-p 0
-      --no-mmproj
+      ${MAITRE_MMPROJ_ARGS:---no-mmproj}
       --no-webui
       ${MAITRE_LLAMACPP_EXTRA_ARGS:-}
       --api-key-file /run/secrets/vllm_api_key
