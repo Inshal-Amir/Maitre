@@ -109,7 +109,8 @@ export function App(): ReactElement {
           <Welcome mode={mode} onPick={(text) => setSeed({ text, nonce: Date.now() })} />
         )}
         {!needsAccount && <Composer mode={mode} running={running} disabled={false} onSend={state.send} onStop={state.stop} seed={seed} dropped={dropped} skills={state.skills} onManageSkills={() => setCustomize('skills')}
-            folder={workDir ? { path: workDir, chosen: folderChosen } : undefined} onChooseFolder={state.chooseFolder} onClearFolder={state.clearFolder} />}
+            folder={workDir ? { path: workDir, chosen: folderChosen } : undefined} onChooseFolder={state.chooseFolder} onClearFolder={state.clearFolder}
+            policy={state.settings?.approvalPolicy ?? 'risky'} onPolicy={(approvalPolicy) => state.saveSettings({ approvalPolicy })} />}
       </main>
       {settingsOpen && state.settings && <Settings settings={state.settings} status={state.status} account={state.account} connectors={state.connectors} memories={state.memories} onSignOut={state.signOut} onSave={state.saveSettings} onClose={closeSettings}
           onCustomize={(tab) => { setSettingsOpen(false); setCustomize(tab); }} />}

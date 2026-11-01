@@ -1,35 +1,35 @@
 {
-  "version": "0.7.0",
+  "version": "0.7.1",
   "released": "2026-11-01",
-  "notes": "- **Skills, apps and plugins:** a new Customize screen (sidebar → Skills, apps and plugins). Add skills, connect apps, install plugins and switch tools on or off.\n- **Connector gallery:** 22 ready-made connectors (GitHub, Notion, Linear, Jira, Asana, Canva, Stripe, Supabase, Playwright, Chrome DevTools and more), your own MCP servers, or paste a config from Claude Desktop, Claude Code, Cursor or VS Code.\n- **Plugins:** install Claude Code plugins and skill collections from GitHub or a folder. Every plugin is shown for review before it is installed.\n- **Slash commands:** type `/` in the message box to run a skill.\n- **Images:** attach or paste screenshots and photos; Maitre now reads them.\n- **Long work:** uses the server's new 1M-token context, and answers can be longer.\n- From 0.6: the new Maitre look and app icon; chats and settings carry over from earlier versions.",
-  "page": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/tag/v0.7.0",
+  "notes": "- **Approval modes (0.7.1):** pick how much Maitre asks you, right under the message box: **Ask before changes**, **Auto-edit** (asks only for risky actions) or **Full auto** (never asks). Shift+Tab switches between them.\n- **Skills, apps and plugins:** a new Customize screen (sidebar → Skills, apps and plugins). Add skills, connect apps, install plugins and switch tools on or off.\n- **Connector gallery:** 22 ready-made connectors (GitHub, Notion, Linear, Jira, Asana, Canva, Stripe, Supabase, Playwright, Chrome DevTools and more), your own MCP servers, or paste a config from Claude Desktop, Claude Code, Cursor or VS Code.\n- **Plugins:** install Claude Code plugins and skill collections from GitHub or a folder. Every plugin is shown for review before it is installed.\n- **Slash commands:** type `/` in the message box to run a skill.\n- **Images:** attach or paste screenshots and photos; Maitre now reads them.\n- **Long work:** uses the server's new 1M-token context, and answers can be longer.\n- From 0.6: the new Maitre look and app icon; chats and settings carry over from earlier versions.",
+  "page": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/tag/v0.7.1",
   "files": [
     {
       "id": "windows",
       "os": "Windows",
       "label": "Windows 10 and 11 (64-bit)",
-      "file": "Maitre-Setup-0.7.0.exe",
-      "size": 114110484,
-      "sha256": "6f6c02434f7597f9d065a657021c57a6f8c746d26cca9c4ad411d108b29c3433",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.0/Maitre-Setup-0.7.0.exe"
+      "file": "Maitre-Setup-0.7.1.exe",
+      "size": 114110934,
+      "sha256": "77a71a47eaa5eff331a1080e85b9d087ce192b1f2099df533f735b1fea530a57",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.1/Maitre-Setup-0.7.1.exe"
     },
     {
       "id": "mac-arm64",
       "os": "macOS",
       "label": "Mac with Apple silicon (M1–M4)",
-      "file": "Maitre-0.7.0-mac-arm64.dmg",
-      "size": 129679783,
-      "sha256": "cbfeef7ded62d970190c2618b886802d5ad029b6815b1ccc1e5a982bc106ec05",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.0/Maitre-0.7.0-mac-arm64.dmg"
+      "file": "Maitre-0.7.1-mac-arm64.dmg",
+      "size": 129678301,
+      "sha256": "72f63c1fc40ddacad577987eebaff6c58f3939930beea85125323199650e2164",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.1/Maitre-0.7.1-mac-arm64.dmg"
     },
     {
       "id": "mac-x64",
       "os": "macOS",
       "label": "Mac with Intel processor",
-      "file": "Maitre-0.7.0-mac-x64.dmg",
-      "size": 136661870,
-      "sha256": "9f8f08722a98302bbc1dc4c871cfffdbd93b836ae584f7a7a02a2b746cd460e5",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.0/Maitre-0.7.0-mac-x64.dmg"
+      "file": "Maitre-0.7.1-mac-x64.dmg",
+      "size": 136670439,
+      "sha256": "05780c2b65a945e75b559f7bd6ded1755ef2354fedc9b581afe0b96319e3d7eb",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.1/Maitre-0.7.1-mac-x64.dmg"
     }
   ]
 }

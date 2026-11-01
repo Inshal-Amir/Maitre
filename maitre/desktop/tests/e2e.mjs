@@ -139,6 +139,30 @@ try {
   await lastAssistant(page).locator('.tool-done:has-text("rm -rf hello")').waitFor({ timeout: 15_000 });
   check('approved command runs', !fs.existsSync(file));
 
+  check('approval mode pill shows Auto-edit by default', (await page.innerText('.policy-pill')).includes('Auto-edit'));
+  await page.click('.policy-pill');
+  await page.click('.policy-menu button:has-text("Ask before changes")');
+  await page.locator('.policy-pill:has-text("Ask before changes")').waitFor({ timeout: 5_000 });
+  await send(page, 'create hello file');
+  await page.waitForSelector('.approval', { timeout: 15_000 });
+  check('"Ask before changes" asks before writing a file', !fs.existsSync(file));
+  await page.click('.approval button:has-text("Allow")');
+  await lastAssistant(page).locator('.markdown:has-text("Done.")').last().waitFor({ timeout: 15_000 });
+  await page.focus('.composer textarea');
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Shift+Tab');
+  await page.locator('.policy-pill:has-text("Full auto")').waitFor({ timeout: 5_000 });
+  check('Shift+Tab cycles to Full auto', true);
+  await send(page, 'delete hello folder');
+  await lastAssistant(page).locator('.tool-done:has-text("rm -rf hello")').waitFor({ timeout: 15_000 });
+  check('Full auto runs a risky command without asking', !fs.existsSync(file) && (await page.locator('.approval').count()) === 0);
+  await page.screenshot({ path: path.join(evidence, '18-approval-modes.png') });
+  await page.focus('.composer textarea');
+  await page.keyboard.press('Shift+Tab');
+  await page.locator('.policy-pill:has-text("Ask before changes")').waitFor({ timeout: 5_000 });
+  await page.keyboard.press('Shift+Tab');
+  await page.locator('.policy-pill:has-text("Auto-edit")').waitFor({ timeout: 5_000 });
+
   await page.click('.new-chat');
   await send(page, 'build a website for me');
   await page.waitForSelector('.question', { timeout: 15_000 });

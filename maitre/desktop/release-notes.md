@@ -1,3 +1,4 @@
+- **Approval modes (0.7.1):** pick how much Maitre asks you, right under the message box: **Ask before changes**, **Auto-edit** (asks only for risky actions) or **Full auto** (never asks). Shift+Tab switches between them.
 - **Skills, apps and plugins:** a new Customize screen (sidebar → Skills, apps and plugins). Add skills, connect apps, install plugins and switch tools on or off.
 - **Connector gallery:** 22 ready-made connectors (GitHub, Notion, Linear, Jira, Asana, Canva, Stripe, Supabase, Playwright, Chrome DevTools and more), your own MCP servers, or paste a config from Claude Desktop, Claude Code, Cursor or VS Code.
 - **Plugins:** install Claude Code plugins and skill collections from GitHub or a folder. Every plugin is shown for review before it is installed.

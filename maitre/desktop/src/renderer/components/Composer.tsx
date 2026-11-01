@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ClipboardEvent, DragEvent, KeyboardEvent, ReactElement } from 'react';
-import type { Attachment, AttachmentResult, Mode, SkillInfo } from '../../shared/types';
+import type { ApprovalPolicy, Attachment, AttachmentResult, Mode, SkillInfo } from '../../shared/types';
 import { api } from '../state';
 import { Icon } from './Icon';
 
@@ -36,6 +36,40 @@ const shortPath = (dir: string): string => dir.replace(/^\/Users\/[^/]+|^C:\\Use
 
 const MENU_SIZE = 8;
 
+/** Approval modes in the order Shift+Tab cycles through them, from most careful to fully automatic. */
+export const POLICY_MODES: { value: ApprovalPolicy; label: string; icon: 'shield' | 'edit' | 'spark'; text: string; hint: string }[] = [
+  { value: 'writes', label: 'Ask before changes', icon: 'shield', text: 'Reads and searches on its own. Every file change and command asks you first.', hint: 'Every change asks you first.' },
+  { value: 'risky', label: 'Auto-edit', icon: 'edit', text: 'Edits files and runs safe commands on its own. Deleting, pushing, installs and anything outside the folder ask first.', hint: 'Risky actions ask you first.' },
+  { value: 'never', label: 'Full auto', icon: 'spark', text: 'Never asks. Use it only for tasks you trust completely.', hint: 'Maitre acts without asking.' },
+];
+
+const policyMode = (policy: ApprovalPolicy) => POLICY_MODES.find((entry) => entry.value === policy) ?? POLICY_MODES[1];
+
+function PolicyPicker({ policy, onPolicy }: { policy: ApprovalPolicy; onPolicy(policy: ApprovalPolicy): void }): ReactElement {
+  const [open, setOpen] = useState(false);
+  const current = policyMode(policy);
+  return (
+    <div className="policy-picker">
+      <button type="button" className={`policy-pill ${policy}`} onClick={() => setOpen((value) => !value)} aria-haspopup="listbox" aria-expanded={open}
+              title={`${current.text}\nShift+Tab switches mode`}>
+        <Icon name={current.icon} size={13} /> {current.label} <Icon name="chevron" size={12} />
+      </button>
+      {open && (
+        <div className="policy-menu" role="listbox" aria-label="Approval mode" onMouseLeave={() => setOpen(false)}>
+          {POLICY_MODES.map((entry) => (
+            <button key={entry.value} type="button" role="option" aria-selected={entry.value === policy} className={entry.value === policy ? 'on' : ''}
+                    onClick={() => { onPolicy(entry.value); setOpen(false); }}>
+              <Icon name={entry.icon} size={15} />
+              <span><b>{entry.label}</b><small>{entry.text}</small></span>
+              {entry.value === policy && <Icon name="check" size={14} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Skills matching what follows the `/`: names that start with it first, then names or descriptions that contain it. */
 function matchSkills(skills: SkillInfo[], query: string): SkillInfo[] {
   const q = query.toLowerCase();
@@ -61,8 +95,11 @@ function SlashMenu({ items, active, onPick, onHover, onManage }: { items: SkillI
   );
 }
 
-export function Composer({ mode, running, disabled, onSend, onStop, seed, dropped, folder, onChooseFolder, onClearFolder, skills, onManageSkills }: {
+export function Composer({ mode, running, disabled, onSend, onStop, seed, dropped, folder, onChooseFolder, onClearFolder, skills, onManageSkills, policy, onPolicy }: {
   mode: Mode;
+  /** When Maitre asks before acting; switched here or with Shift+Tab. */
+  policy: ApprovalPolicy;
+  onPolicy(policy: ApprovalPolicy): void;
   /** Skills and commands offered after `/`. */
   skills: SkillInfo[];
   onManageSkills(): void;
@@ -171,6 +208,12 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
         return;
       }
     }
+    if (event.key === 'Tab' && event.shiftKey) {
+      event.preventDefault();
+      const index = POLICY_MODES.findIndex((entry) => entry.value === policy);
+      onPolicy(POLICY_MODES[(index + 1) % POLICY_MODES.length].value);
+      return;
+    }
     if (menuOpen && event.key === 'Escape') {
       event.preventDefault();
       setMenuClosed(true);
@@ -248,8 +291,11 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
           </button>
         )}
       </div>
-      <div className="composer-hint">
-        {mode === 'work' ? 'Work mode can change files and run programs on this computer. Risky actions ask you first.' : 'Maitre can make mistakes. Check important information.'} Drop or paste images, PDF, Word or text files here. Type / for skills.
+      <div className="composer-foot">
+        <PolicyPicker policy={policy} onPolicy={onPolicy} />
+        <div className="composer-hint">
+          {mode === 'work' ? `Work mode can change files and run programs on this computer. ${policyMode(policy).hint}` : 'Maitre can make mistakes. Check important information.'} Drop or paste images, PDF, Word or text files here. Type / for skills.
+        </div>
       </div>
     </div>
   );

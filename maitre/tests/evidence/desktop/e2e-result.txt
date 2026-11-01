@@ -19,6 +19,10 @@ PASS risky command shows an inline approval
 PASS denied command did not run
 PASS model is told about the denial
 PASS approved command runs
+PASS approval mode pill shows Auto-edit by default
+PASS "Ask before changes" asks before writing a file
+PASS Shift+Tab cycles to Full auto
+PASS Full auto runs a risky command without asking
 PASS agent asks questions with clickable options first
 PASS answers go back to the agent
 PASS plan checklist is shown with progress
@@ -49,4 +53,4 @@ PASS the skill instructions reach the model
 PASS installed plugin skills are listed for the agent
 PASS switched-off tools are not sent
 PASS conversations are saved to disk
-51/51 passed on darwin 2026-11-01T16:58:58.412Z
+55/55 passed on darwin 2026-11-01T17:12:54.537Z

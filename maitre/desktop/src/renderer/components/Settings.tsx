@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactElement } from 'react';
-import type { AccountStatus, ConnectorStatus, Memory, ApprovalPolicy, ModelStatus, Settings as SettingsType, SettingsPatch } from '../../shared/types';
+import type { AccountStatus, ConnectorStatus, Memory, ModelStatus, Settings as SettingsType, SettingsPatch } from '../../shared/types';
 import type { CustomizeTab } from './customize';
+import { POLICY_MODES } from './Composer';
 import { Icon } from './Icon';
 import { api } from '../state';
 
-const POLICIES: { value: ApprovalPolicy; title: string; text: string }[] = [
-  { value: 'risky', title: 'Ask for risky actions', text: 'Recommended. Deleting, pushing, sudo, system installs, unknown programs and changes outside the working folder ask first.' },
-  { value: 'writes', title: 'Ask before any change', text: 'Only reading and searching run on their own. Every file change and command that changes something asks first.' },
-  { value: 'never', title: 'Never ask', text: 'Maitre acts without asking. Only use this if you trust the task completely.' },
-];
 
 export function Settings({ settings, status, account, connectors, memories, onSignOut, onSave, onClose, onCustomize }: {
   settings: SettingsType;
@@ -154,10 +150,10 @@ export function Settings({ settings, status, account, connectors, memories, onSi
               </div>
             </label>
             <div className="policy">
-              {POLICIES.map((policy) => (
+              {POLICY_MODES.map((policy) => (
                 <label key={policy.value} className={`policy-option ${draft.approvalPolicy === policy.value ? 'on' : ''}`}>
                   <input type="radio" name="policy" checked={draft.approvalPolicy === policy.value} onChange={() => set('approvalPolicy', policy.value)} />
-                  <span className="policy-title">{policy.title}</span>
+                  <span className="policy-title">{policy.label}</span>
                   <span className="policy-text">{policy.text}</span>
                 </label>
               ))}
