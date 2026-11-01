@@ -12,6 +12,16 @@ const desktop = path.resolve(here, '..');
 const evidence = path.resolve(desktop, '../tests/evidence/desktop');
 fs.mkdirSync(evidence, { recursive: true });
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'maitre-e2e-data-'));
+const maitreHome = fs.mkdtempSync(path.join(os.tmpdir(), 'maitre-e2e-home-'));
+const pluginSource = fs.mkdtempSync(path.join(os.tmpdir(), 'maitre-e2e-plugin-'));
+for (const [file, content] of Object.entries({
+  '.claude-plugin/plugin.json': JSON.stringify({ name: 'team-kit', description: 'Team writing helpers', version: '1.0.0' }),
+  'skills/meeting-notes/SKILL.md': '---\nname: meeting-notes\ndescription: Turns a meeting transcript into decisions and action items.\n---\n\nList decisions, then action items with owners.',
+  'commands/standup.md': '---\ndescription: Write my standup\n---\nWrite a standup from: $ARGUMENTS',
+})) {
+  fs.mkdirSync(path.dirname(path.join(pluginSource, file)), { recursive: true });
+  fs.writeFileSync(path.join(pluginSource, file), content);
+}
 const workDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'maitre-e2e-work-')));
 fs.writeFileSync(path.join(userData, 'settings.json'), JSON.stringify({ defaultWorkDir: workDir }));
 
@@ -26,7 +36,7 @@ const app = await electron.launch({
   args: ['.'],
   cwd: desktop,
   timeout: 60_000,
-  env: { ...process.env, MAITRE_USER_DATA: userData, MAITRE_API_BASE: mock.url, MAITRE_CONSOLE_BASE: mock.consoleUrl },
+  env: { ...process.env, MAITRE_USER_DATA: userData, MAITRE_HOME: path.join(maitreHome, 'maitre'), MAITRE_CLAUDE_HOME: path.join(maitreHome, 'claude'), MAITRE_API_BASE: mock.url, MAITRE_CONSOLE_BASE: mock.consoleUrl },
 });
 app.process().stdout.on('data', (d) => process.stdout.write(`  [main] ${d}`));
 app.process().stderr.on('data', (d) => process.stdout.write(`  [main:err] ${d}`));
@@ -177,18 +187,58 @@ try {
   check('settings dialog opens with policy options', (await page.locator('.policy-option').count()) === 3);
   const accountText = await page.innerText('.account-row');
   check('settings show the account and its credits', /tester@example.com/.test(accountText) && /2,?000/.test(accountText), accountText.replace(/\n/g, ' | '));
-  const googleCard = await page.innerText('.connector');
-  check('connected apps list Google with its services', /Google/.test(googleCard) && /Gmail/.test(googleCard) && /Calendar/.test(googleCard), googleCard.split('\n').slice(0, 3).join(' | '));
-  await page.click('button:has-text("+ Add MCP server")');
-  await page.fill('.custom-servers input[placeholder="e.g. Notion"]', 'My Notes');
-  await page.selectOption('.custom-servers select', 'stdio');
-  await page.fill('.custom-servers input[placeholder="npx"]', process.execPath);
-  await page.fill('.custom-servers input[placeholder^="-y"]', path.join(here, 'fixtures/notes-server.mjs'));
-  await page.click('button:has-text("Add and connect")');
-  await page.waitForSelector('.connector-row:has-text("3 tools")', { timeout: 30_000 });
-  check('custom MCP server added from settings connects (3 tools)', true);
+  await page.click('.dialog button:has-text("Connectors")');
+  await page.waitForSelector('.customize');
+  check('settings open Customize on the Connectors tab', (await page.innerText('.customize-main .dialog-head h2')) === 'Connectors');
+  const googleCard = await page.innerText('.customize .connector');
+  check('connectors list Google with its services', /Google/.test(googleCard) && /Gmail/.test(googleCard) && /Calendar/.test(googleCard), googleCard.split('\n').slice(0, 3).join(' | '));
+  const cards = await page.locator('.customize .card').count();
+  check('connector gallery shows ready-made servers', cards >= 15, `${cards} cards`);
+  await page.click('.customize button:has-text("Custom server")');
+  await page.fill('.form-card input[placeholder="e.g. Notion"]', 'My Notes');
+  await page.selectOption('.form-card select', 'stdio');
+  await page.fill('.form-card input[placeholder="npx"]', process.execPath);
+  await page.fill('.form-card input[placeholder^="-y"]', path.join(here, 'fixtures/notes-server.mjs'));
+  await page.click('.form-card button:has-text("Add and connect")');
+  await page.waitForSelector('.customize .item:has-text("My Notes"):has-text("3 tools")', { timeout: 30_000 });
+  check('custom MCP server connects (3 tools)', true);
   await page.screenshot({ path: path.join(evidence, '09-connectors.png') });
+
+  await page.click('.customize-nav button:has-text("Skills")');
+  await page.waitForSelector('.customize .item:has-text("skill-creator")');
+  check('skills tab lists the built-in skills', (await page.locator('.customize .group:has-text("Built in") .item').count()) >= 5);
+  await page.click('.customize button:has-text("New skill")');
+  await page.fill('.editor input[placeholder="weekly-report"]', 'pirate-voice');
+  await page.fill('.editor textarea.short', 'Answers like a friendly pirate. Use when the user asks for pirate talk.');
+  await page.fill('.editor textarea.code-area', 'Talk like a pirate. Always end with Arrr!');
+  await page.click('.editor button:has-text("Save skill")');
+  await page.waitForSelector('.customize .group:has-text("Your skills") .item:has-text("pirate-voice")');
+  check('a new skill is saved to ~/.maitre/skills', fs.existsSync(path.join(maitreHome, 'maitre', 'skills', 'pirate-voice', 'SKILL.md')));
+  await page.screenshot({ path: path.join(evidence, '12-skills.png') });
+
+  await page.click('.customize-nav button:has-text("Plugins")');
+  await page.waitForSelector('.customize .item.market');
+  check('plugins tab offers the official marketplaces', (await page.innerText('.customize')).includes('Claude plugins (official)'));
+  await page.fill('.install input', pluginSource);
+  await page.click('.install button[type=submit]');
+  await page.waitForSelector('.dialog.review');
+  const review = await page.innerText('.dialog.review');
+  check('installing a plugin shows a review first', /team-kit/.test(review) && /meeting-notes/.test(review) && /\/standup/.test(review), review.split('\n').slice(0, 2).join(' | '));
+  await page.screenshot({ path: path.join(evidence, '13-plugin-review.png') });
+  await page.click('.dialog.review button:has-text("Install")');
+  await page.waitForSelector('.customize .group:has-text("Installed") .item:has-text("team-kit")');
+  check('plugin installs and appears as installed', fs.existsSync(path.join(maitreHome, 'maitre', 'plugins', 'team-kit', 'skills', 'meeting-notes', 'SKILL.md')));
+  await page.screenshot({ path: path.join(evidence, '14-plugins.png') });
+
+  await page.click('.customize-nav button:has-text("Tools")');
+  await page.waitForSelector('.customize .item:has-text("web_search")');
+  await page.click('.customize .item:has(.item-title code:text-is("fetch_url")) .toggle');
+  await page.waitForSelector('.customize .item.off:has(.item-title code:text-is("fetch_url"))');
+  check('a built-in tool can be switched off', JSON.parse(fs.readFileSync(path.join(userData, 'settings.json'), 'utf8')).disabledTools.includes('fetch_url'));
+  check('locked tools cannot be switched off', await page.locator('.customize .item:has(.item-title code:text-is("ask_user")) .toggle').isDisabled());
+  await page.screenshot({ path: path.join(evidence, '15-tools.png') });
   await page.keyboard.press('Escape');
+  await page.waitForSelector('.customize', { state: 'detached' });
 
   await page.click('.mode-switch button:has-text("Chat")');
   await page.click('.new-chat');
@@ -196,6 +246,25 @@ try {
   await lastAssistant(page).locator('.markdown:has-text("saved note 1")').waitFor({ timeout: 20_000 });
   const noteTools = mock.requests[mock.requests.length - 1].tools.map((t) => t.function.name);
   check('agent uses the MCP tool in Chat mode', noteTools.includes('my_notes_add_note'), (await lastAssistant(page).innerText()).split('\n').slice(-1)[0]);
+
+  await page.click('.new-chat');
+  await page.fill('textarea', '/pir');
+  await page.waitForSelector('.slash-menu button.on:has-text("/pirate-voice")');
+  check('typing / opens the skill menu', (await page.locator('.slash-menu button[role=option]').count()) >= 1);
+  await page.screenshot({ path: path.join(evidence, '16-slash-menu.png') });
+  await page.keyboard.press('Enter');
+  check('picking a skill completes the command', (await page.inputValue('textarea')) === '/pirate-voice ');
+  await page.type('textarea', 'say hello');
+  await page.waitForSelector('.skill-chip.live:has-text("pirate-voice")');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('.turn.user .skill-chip:has-text("pirate-voice")');
+  await lastAssistant(page).locator('.markdown').waitFor({ timeout: 15_000 });
+  const skillRequest = mock.requests[mock.requests.length - 1];
+  const skillMessage = skillRequest.messages.filter((m) => m.role === 'user').pop()?.content ?? '';
+  check('the skill instructions reach the model', /<skill name="pirate-voice">/.test(skillMessage) && /Arrr!/.test(skillMessage));
+  check('installed plugin skills are listed for the agent', /team-kit:meeting-notes/.test(skillRequest.messages[0].content));
+  check('switched-off tools are not sent', !skillRequest.tools.some((t) => t.function.name === 'fetch_url'));
+  await page.screenshot({ path: path.join(evidence, '17-skill-run.png') });
   await page.click('.mode-switch button:has-text("Work")');
 
   await page.emulateMedia({ colorScheme: 'dark' });

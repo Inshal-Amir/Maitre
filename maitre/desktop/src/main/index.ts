@@ -2,16 +2,19 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, powerSaveBlocker, session, shell } from 'electron';
-import type { AgentEvent, ApprovalDecision, Attachment, AttachmentResult, Conversation, GoogleService, McpServerConfig, Mode, ModelStatus, SettingsPatch } from '../shared/types';
+import type { AgentEvent, ApprovalDecision, Attachment, AttachmentResult, Conversation, GoogleService, InstallResult, McpServerInput, Mode, ModelStatus, SettingsPatch, SkillDraft } from '../shared/types';
 import { initShellEnvironment, listProcesses, setExtraEnv, stopAllProcesses, stopProcess, watchProcesses } from './tools/shell';
 import { getSettings, readSecret, saveSettings } from './settings';
 import { configureBackups } from './tools/files';
 import { protectPaths } from './tools/policy';
+import { deleteUserSkill, getSkillDocument, importSkillFolders, listSkills, saveUserSkill, setSkillEnabled, skillFoldersIn, skillsChanged, watchSkills } from './skills';
 import { Connectors } from './mcp/connectors';
+import { toolInfos } from './tools';
+import { Plugins } from './plugins';
 import { Runtime } from './agent/runtime';
 import { checkModel } from './llm';
 import * as account from './account';
-import { extractDocument } from './documents';
+import { extractDocument, imageDataUrl, isImagePath, readImage } from './documents';
 import { clearMemories, deleteMemory, listMemories, watchMemories } from './memory';
 import * as store from './store';
 import { adoptOldUserData } from './legacy';
@@ -29,10 +32,22 @@ function emit(event: AgentEvent): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('maitre:event', event);
 }
 
-const connectors = new Connectors((statuses) => emit({ type: 'connectors', connectors: statuses }));
+const plugins = new Plugins(() => {
+  skillsChanged();
+  connectors.syncPlugins().catch((error: Error) => console.error('[maitre] plugin servers failed', error));
+  emit({ type: 'plugins' });
+});
+
+const connectors = new Connectors((statuses) => emit({ type: 'connectors', connectors: statuses }), () => plugins.servers());
+
+/** The context window the server reports for the model; requests never plan for more than this. */
+let serverContext: number | undefined;
 
 const runtime = new Runtime({
-  settings: getSettings,
+  settings: () => {
+    const settings = getSettings();
+    return serverContext ? { ...settings, contextTokens: Math.min(settings.contextTokens, serverContext) } : settings;
+  },
   apiKey: () => readSecret('api-key'),
   save: store.save,
   emit,
@@ -69,6 +84,7 @@ async function addAttachments(paths: string[]): Promise<AttachmentResult[]> {
       title: 'Attach files',
       properties: ['openFile', 'multiSelections'],
       filters: [
+        { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] },
         { name: 'Documents and text', extensions: ['pdf', 'docx', 'txt', 'md', 'csv', 'json', 'html', 'xml', 'yaml', 'yml', 'log', 'py', 'js', 'ts', 'tsx', 'jsx', 'java', 'c', 'cpp', 'cs', 'go', 'rs', 'php', 'rb', 'sql', 'sh', 'ps1'] },
         { name: 'All files', extensions: ['*'] },
       ],
@@ -78,6 +94,7 @@ async function addAttachments(paths: string[]): Promise<AttachmentResult[]> {
   return Promise.all(chosen.slice(0, 10).map(async (file): Promise<AttachmentResult> => {
     const name = path.basename(file);
     try {
+      if (isImagePath(file)) return keepImage(name, file, readImage(file));
       const extracted = await extractDocument(file);
       const attachment: Attachment = {
         id: crypto.randomUUID(), name, path: file, size: fs.statSync(file).size, kind: extracted.kind,
@@ -90,6 +107,31 @@ async function addAttachments(paths: string[]): Promise<AttachmentResult[]> {
       return { name, error: (error as Error).message };
     }
   }));
+}
+
+function keepImage(name: string, file: string, dataUrl: string): Attachment {
+  const attachment: Attachment = {
+    id: crypto.randomUUID(), name, path: file, size: Math.floor((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75), kind: 'image', chars: 0, truncated: false, dataUrl,
+  };
+  pendingAttachments.set(attachment.id, attachment);
+  return attachment;
+}
+
+/** A pasted image without a file: saved under the app data folder so it has a path like any other attachment. */
+function addPastedImage(name: string, dataUrl: string): AttachmentResult {
+  const match = /^data:image\/(png|jpeg|webp|gif);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+  const safeName = path.basename(name).replace(/[^\w.-]+/g, '-') || 'pasted-image';
+  if (!match) return { name: safeName, error: 'Only PNG, JPEG, WebP and GIF images can be pasted.' };
+  const file = path.join(app.getPath('userData'), 'pasted', `${crypto.randomUUID()}-${/\.\w+$/.test(safeName) ? safeName : `${safeName}.${match[1] === 'jpeg' ? 'jpg' : match[1]}`}`);
+  try {
+    const bytes = Buffer.from(match[2], 'base64');
+    const checked = imageDataUrl(path.basename(file), bytes);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, bytes);
+    return keepImage(safeName, file, checked);
+  } catch (error) {
+    return { name: safeName, error: (error as Error).message };
+  }
 }
 
 function requireConversation(id: string): Conversation {
@@ -116,12 +158,21 @@ async function chooseDirectory(current?: string): Promise<string | null> {
   return result.canceled || !result.filePaths[0] ? null : fs.realpathSync(result.filePaths[0]);
 }
 
+async function chooseFolder(title: string): Promise<string | null> {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, { title, properties: ['openDirectory'] });
+  return result.canceled || !result.filePaths[0] ? null : fs.realpathSync(result.filePaths[0]);
+}
+
 async function modelStatus(): Promise<ModelStatus> {
   const { apiBase, model } = getSettings();
   const key = readSecret('api-key');
   if (!key) return { state: 'no-key', detail: 'Sign in to connect' };
-  const { status, models } = await checkModel(apiBase, key);
-  if (status === 200) return { state: 'online', detail: models.includes(model) ? model : `${model} not listed (${models.join(', ') || 'no models'})` };
+  const { status, models, contextLength } = await checkModel(apiBase, key, model);
+  if (status === 200) {
+    serverContext = contextLength;
+    return { state: 'online', detail: models.includes(model) ? model : `${model} not listed (${models.join(', ') || 'no models'})` };
+  }
   if (status === 401 || status === 403) return { state: 'unauthorized', detail: 'The API key was rejected' };
   if (status === 530 || status === 502 || status === 503) return { state: 'offline', detail: 'The Maitre server is offline right now' };
   return { state: 'offline', detail: status ? `HTTP ${status}` : 'Cannot reach the model API' };
@@ -170,6 +221,7 @@ function registerIpc(): void {
     return dir;
   });
   handle('attachments:add', (paths: string[]) => addAttachments(paths));
+  handle('attachments:add-image', (name: string, dataUrl: string) => addPastedImage(name, dataUrl));
   handle('agent:send', (id: string, text: string, attachmentIds: string[]) => {
     const conversation = requireConversation(id);
     const attachments = attachmentIds.map((attachmentId) => pendingAttachments.get(attachmentId)).filter((entry): entry is Attachment => Boolean(entry));
@@ -196,9 +248,51 @@ function registerIpc(): void {
   handle('connectors:list', () => connectors.statuses());
   handle('connectors:google-connect', (services: GoogleService[]) => connectors.connectGoogle(services));
   handle('connectors:google-disconnect', () => connectors.disconnectGoogle());
-  handle('connectors:save', (config: McpServerConfig) => connectors.saveServer(config));
+  handle('connectors:save', (config: McpServerInput) => connectors.saveServer(config));
   handle('connectors:remove', (id: string) => connectors.removeServer(id));
   handle('connectors:reconnect', (id: string) => connectors.reconnect(id));
+  handle('connectors:import-json', (json: string) => connectors.importJson(json));
+  handle('connectors:check-commands', (commands: string[]) => connectors.checkCommands(commands));
+  handle('connectors:set-vars', (id: string, values: Record<string, string>) => connectors.setServerVars(id, values));
+  handle('skills:list', (cwd?: string) => listSkills(cwd));
+  handle('skills:get', (id: string) => getSkillDocument(id));
+  handle('skills:save', (draft: SkillDraft, replaceId?: string) => saveUserSkill(draft, replaceId));
+  handle('skills:delete', (id: string) => deleteUserSkill(id));
+  handle('skills:set-enabled', (id: string, enabled: boolean) => setSkillEnabled(id, enabled));
+  handle('skills:import-folder', async (dir?: string) => {
+    const chosen = dir ?? (await chooseFolder('Choose a skill folder (with a SKILL.md inside)'));
+    return chosen ? importSkillFolders(skillFoldersIn(chosen)) : [];
+  });
+  handle('tools:list', () => toolInfos(getSettings().disabledTools));
+  handle('tools:set-enabled', (name: string, enabled: boolean) => {
+    const others = getSettings().disabledTools.filter((entry) => entry !== name);
+    saveSettings({ disabledTools: enabled ? others : [...others, name] });
+    emit({ type: 'tools' });
+  });
+  handle('plugins:list', () => plugins.list());
+  handle('plugins:inspect', async (source: string): Promise<InstallResult | null> => {
+    const chosen = source.trim() || (await chooseFolder('Choose a plugin, marketplace or skills folder'));
+    if (!chosen) return null;
+    const result = await plugins.inspect(chosen);
+    emit({ type: 'plugins' });
+    return result;
+  });
+  handle('plugins:inspect-marketplace', (marketplaceId: string, name: string) => plugins.inspectMarketplacePlugin(marketplaceId, name));
+  handle('plugins:confirm', (stagingId: string) => plugins.confirm(stagingId));
+  handle('plugins:cancel', (stagingId: string) => plugins.cancel(stagingId));
+  handle('plugins:set-enabled', (id: string, enabled: boolean) => plugins.setEnabled(id, enabled));
+  handle('plugins:remove', (id: string) => plugins.remove(id));
+  handle('plugins:update', (id: string) => plugins.update(id));
+  handle('marketplaces:list', () => plugins.marketplaces());
+  handle('marketplaces:refresh', async (id: string) => {
+    const market = await plugins.refreshMarketplace(id);
+    emit({ type: 'plugins' });
+    return market;
+  });
+  handle('marketplaces:remove', (id: string) => {
+    plugins.removeMarketplace(id);
+    emit({ type: 'plugins' });
+  });
   handle('memories:list', () => listMemories());
   handle('memories:delete', (id: string) => {
     deleteMemory(id);
@@ -262,6 +356,7 @@ app.whenReady().then(async () => {
   applyGithubToken();
   watchProcesses((processes) => emit({ type: 'processes', processes }));
   watchMemories((memories) => emit({ type: 'memories', memories }));
+  watchSkills(() => emit({ type: 'skills' }));
   registerIpc();
   createWindow();
   powerSaveBlocker.start('prevent-app-suspension');

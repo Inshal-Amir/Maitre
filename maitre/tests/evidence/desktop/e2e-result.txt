@@ -31,8 +31,22 @@ PASS PDF text reaches the model with the message
 PASS sent message shows the file chip
 PASS settings dialog opens with policy options
 PASS settings show the account and its credits
-PASS connected apps list Google with its services
-PASS custom MCP server added from settings connects (3 tools)
+PASS settings open Customize on the Connectors tab
+PASS connectors list Google with its services
+PASS connector gallery shows ready-made servers
+PASS custom MCP server connects (3 tools)
+PASS skills tab lists the built-in skills
+PASS a new skill is saved to ~/.maitre/skills
+PASS plugins tab offers the official marketplaces
+PASS installing a plugin shows a review first
+PASS plugin installs and appears as installed
+PASS a built-in tool can be switched off
+PASS locked tools cannot be switched off
 PASS agent uses the MCP tool in Chat mode
+PASS typing / opens the skill menu
+PASS picking a skill completes the command
+PASS the skill instructions reach the model
+PASS installed plugin skills are listed for the agent
+PASS switched-off tools are not sent
 PASS conversations are saved to disk
-37/37 passed on darwin 2026-10-11T13:27:05.049Z
+51/51 passed on darwin 2026-11-01T16:58:58.412Z

@@ -56,12 +56,12 @@ Rules:
 - Talk to the user in short sentences before bigger steps; do not narrate every tool call.
 ${SHARED}`;
 
-const APPS = `Connected apps (MCP): use their tools when the user asks about their email, calendar, files, documents or sheets.
+const APPS = `Connected apps (MCP servers the user added, or that came with plugins): use their tools when the request is about that app or service (email, calendar, files, documents, issues, docs, browser, and so on).
 Read and search freely. Create drafts rather than sending email unless the user explicitly asks to send. Never delete, send or share on your own initiative; the app asks the user before those actions.`;
 
-export function systemPrompt(mode: Mode, cwd: string, apps: string[] = [], project = '', workRoot = cwd): string {
+export function systemPrompt(mode: Mode, cwd: string, apps: string[] = [], project = '', workRoot = cwd, skills = ''): string {
   const connected = apps.length ? `\n\n${APPS}\n${apps.map((app) => `- ${app}`).join('\n')}` : '';
   const memory = memoryPrompt();
   const base = mode === 'chat' ? CHAT : WORK.replace('__WORKDIR__', workRoot);
-  return `${base}${connected}${memory ? `\n\n${memory}` : ''}${project ? `\n\n${project}` : ''}\n\nEnvironment:\n${environment(cwd)}`;
+  return `${base}${connected}${skills ? `\n\n${skills}` : ''}${memory ? `\n\n${memory}` : ''}${project ? `\n\n${project}` : ''}\n\nEnvironment:\n${environment(cwd)}`;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactElement } from 'react';
 import type { AccountStatus, ConnectorStatus, Memory, ApprovalPolicy, ModelStatus, Settings as SettingsType, SettingsPatch } from '../../shared/types';
-import { Connectors } from './Connectors';
+import type { CustomizeTab } from './customize';
 import { Icon } from './Icon';
 import { api } from '../state';
 
@@ -11,7 +11,7 @@ const POLICIES: { value: ApprovalPolicy; title: string; text: string }[] = [
   { value: 'never', title: 'Never ask', text: 'Maitre acts without asking. Only use this if you trust the task completely.' },
 ];
 
-export function Settings({ settings, status, account, connectors, memories, onSignOut, onSave, onClose }: {
+export function Settings({ settings, status, account, connectors, memories, onSignOut, onSave, onClose, onCustomize }: {
   settings: SettingsType;
   status: ModelStatus | null;
   account: AccountStatus | null;
@@ -20,6 +20,7 @@ export function Settings({ settings, status, account, connectors, memories, onSi
   onSignOut(): Promise<void>;
   onSave(patch: SettingsPatch): Promise<void>;
   onClose(): void;
+  onCustomize(tab: CustomizeTab): void;
 }): ReactElement {
   const [draft, setDraft] = useState(settings);
   const [apiKey, setApiKey] = useState('');
@@ -42,8 +43,9 @@ export function Settings({ settings, status, account, connectors, memories, onSi
     setSaving(true);
     setError('');
     try {
-      const { hasApiKey: _key, hasGithubToken: _token, ...rest } = draft;
-      await onSave({ ...rest, ...(apiKey ? { apiKey } : {}), ...(githubToken ? { githubToken } : {}) });
+      const { apiBase, model, contextTokens, maxOutputTokens, defaultWorkDir, approvalPolicy, searxngUrl, theme, memoryEnabled } = draft;
+      const edited: SettingsPatch = { apiBase, model, contextTokens, maxOutputTokens, defaultWorkDir, approvalPolicy, searxngUrl, theme, memoryEnabled };
+      await onSave({ ...edited, ...(apiKey ? { apiKey } : {}), ...(githubToken ? { githubToken } : {}) });
       setApiKey('');
       setGithubToken('');
       onClose();
@@ -81,13 +83,16 @@ export function Settings({ settings, status, account, connectors, memories, onSi
               </div>
             </section>
           )}
-          <Connectors
-            statuses={connectors}
-            servers={settings.mcpServers}
-            google={draft.google}
-            onGoogle={(google) => set('google', google)}
-            saveGoogle={async () => { await api().saveSettings({ google: draft.google }); }}
-          />
+          <section>
+            <h3>Skills, connectors and plugins</h3>
+            <div className="field-note">{connectors.filter((connector) => connector.state === 'connected').length} connected · {settings.disabledTools.length ? `${settings.disabledTools.length} tools off` : 'all tools on'}</div>
+            <div className="connector-actions">
+              <button type="button" className="btn small" onClick={() => onCustomize('skills')}><Icon name="book" size={14} /> Skills</button>
+              <button type="button" className="btn small" onClick={() => onCustomize('connectors')}><Icon name="plug" size={14} /> Connectors</button>
+              <button type="button" className="btn small" onClick={() => onCustomize('plugins')}><Icon name="puzzle" size={14} /> Plugins</button>
+              <button type="button" className="btn small" onClick={() => onCustomize('tools')}><Icon name="wrench" size={14} /> Tools</button>
+            </div>
+          </section>
           <section>
             <h3>Memory</h3>
             <label className="check">

@@ -37,6 +37,9 @@ const TOOL_ICONS: Record<string, IconName> = {
   github_read_file: 'github',
   remember: 'brain',
   forget_memory: 'brain',
+  use_skill: 'book',
+  read_skill_file: 'book',
+  create_skill: 'book',
 };
 
 const STATUS_LABEL: Record<ToolCall['status'], string> = {

@@ -1,35 +1,35 @@
 {
-  "version": "0.6.2",
-  "released": "2026-10-11",
-  "notes": "- **New look:** a warm new theme (light and dark), a serif \"Maitre\" wordmark and the new Maitre logo as the app icon.\n- **Fix (0.6.1):** chats and settings from earlier versions now carry over to Maitre reliably.\n- **Fully Maitre:** every part of the app now uses the Maitre name, including the model (`maitre-coder`). Your chats, settings and work folder are carried over automatically.\n- **Update needed:** after the server switch to the new names, versions before 0.6.0 can no longer chat. Install this version over the old one (on Windows, uninstall the old \"Zehnora\" entry if it is still listed).\n- From 0.5: Maitre by Menthiq (https://maitre.menthiq.com, API https://api.menthiq.com/v1), Connect Google with Maitre's own Google sign-in.",
-  "page": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/tag/v0.6.2",
+  "version": "0.7.0",
+  "released": "2026-11-01",
+  "notes": "- **Skills, apps and plugins:** a new Customize screen (sidebar → Skills, apps and plugins). Add skills, connect apps, install plugins and switch tools on or off.\n- **Connector gallery:** 22 ready-made connectors (GitHub, Notion, Linear, Jira, Asana, Canva, Stripe, Supabase, Playwright, Chrome DevTools and more), your own MCP servers, or paste a config from Claude Desktop, Claude Code, Cursor or VS Code.\n- **Plugins:** install Claude Code plugins and skill collections from GitHub or a folder. Every plugin is shown for review before it is installed.\n- **Slash commands:** type `/` in the message box to run a skill.\n- **Images:** attach or paste screenshots and photos; Maitre now reads them.\n- **Long work:** uses the server's new 1M-token context, and answers can be longer.\n- From 0.6: the new Maitre look and app icon; chats and settings carry over from earlier versions.",
+  "page": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/tag/v0.7.0",
   "files": [
     {
       "id": "windows",
       "os": "Windows",
       "label": "Windows 10 and 11 (64-bit)",
-      "file": "Maitre-Setup-0.6.2.exe",
-      "size": 114033527,
-      "sha256": "588f638dbadb53b787aa4a3f80344a4346ee51a70ddc9ca63b19ee99fbec9e15",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.6.2/Maitre-Setup-0.6.2.exe"
+      "file": "Maitre-Setup-0.7.0.exe",
+      "size": 114110484,
+      "sha256": "6f6c02434f7597f9d065a657021c57a6f8c746d26cca9c4ad411d108b29c3433",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.0/Maitre-Setup-0.7.0.exe"
     },
     {
       "id": "mac-arm64",
       "os": "macOS",
       "label": "Mac with Apple silicon (M1–M4)",
-      "file": "Maitre-0.6.2-mac-arm64.dmg",
-      "size": 129600794,
-      "sha256": "d96824e9fa3ae22f597462a11f22b53797d633c197d895042baf615f0af80658",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.6.2/Maitre-0.6.2-mac-arm64.dmg"
+      "file": "Maitre-0.7.0-mac-arm64.dmg",
+      "size": 129679783,
+      "sha256": "cbfeef7ded62d970190c2618b886802d5ad029b6815b1ccc1e5a982bc106ec05",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.0/Maitre-0.7.0-mac-arm64.dmg"
     },
     {
       "id": "mac-x64",
       "os": "macOS",
       "label": "Mac with Intel processor",
-      "file": "Maitre-0.6.2-mac-x64.dmg",
-      "size": 136570586,
-      "sha256": "fee87d53f6bf262afb229f22058116b6b733c4f2aee517c6bbb7c9cd57b5c392",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.6.2/Maitre-0.6.2-mac-x64.dmg"
+      "file": "Maitre-0.7.0-mac-x64.dmg",
+      "size": 136661870,
+      "sha256": "9f8f08722a98302bbc1dc4c871cfffdbd93b836ae584f7a7a02a2b746cd460e5",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.0/Maitre-0.7.0-mac-x64.dmg"
     }
   ]
 }

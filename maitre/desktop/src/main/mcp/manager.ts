@@ -1,11 +1,12 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { CallToolResult, Tool as McpTool } from '@modelcontextprotocol/sdk/types.js';
-import type { ConnectorState, ConnectorStatus, GoogleService, McpServerConfig } from '../../shared/types';
+import type { ConnectorKind, ConnectorState, ConnectorStatus, GoogleService, McpServerConfig } from '../../shared/types';
 import type { Risk } from '../../shared/types';
 import type { McpInputSchema } from '../llm';
 import type { Tool } from '../tools/types';
@@ -22,21 +23,27 @@ export const GOOGLE_OFFICIAL_URLS: Record<GoogleService, string> = {
 
 const RISKY_NAME = /(^|_)(send|delete|remove|trash|share|unshare|permission|publish|transfer|pay|purchase|drop|revoke|invite)/i;
 const CALL_TIMEOUT_MS = 120_000;
+const CLIENT_VERSION = '0.7.0';
 const PREFIX_MAX = 20;
 
 /** How to reach one MCP server: a transport factory plus the prefix its tools get in the agent. */
 export interface ConnectorSpec {
   id: string;
   name: string;
-  kind: 'google' | 'custom';
+  kind: ConnectorKind;
   prefix: string;
   account?: string;
+  plugin?: string;
   transport(): Transport | Promise<Transport>;
+  /** Tried when `transport` fails for a reason other than sign-in (Streamable HTTP → legacy SSE). */
+  fallback?(): Transport;
   oauth?: OAuthProvider;
 }
 
 interface Connection {
   spec: ConnectorSpec;
+  /** Tool-name prefix, unique among connections. */
+  prefix: string;
   state: ConnectorState;
   detail: string;
   client: Client | null;
@@ -72,7 +79,7 @@ function summarizeArgs(args: object): string {
 
 function toAgentTool(connection: Connection, tool: McpTool): Tool {
   const { spec } = connection;
-  const name = `${spec.prefix}_${tool.name}`.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+  const name = `${connection.prefix}_${tool.name}`.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
   const risk = riskOf(tool);
   return {
     name,
@@ -109,7 +116,7 @@ export class McpManager {
 
   statuses(): ConnectorStatus[] {
     return [...this.connections.values()].map(({ spec, state, detail, tools }) => ({
-      id: spec.id, name: spec.name, kind: spec.kind, state, detail, account: spec.account, tools: tools.map((tool) => tool.name),
+      id: spec.id, name: spec.name, kind: spec.kind, state, detail, account: spec.account, plugin: spec.plugin, tools: tools.map((tool) => tool.name),
     }));
   }
 
@@ -126,11 +133,11 @@ export class McpManager {
   /** Connects (or reconnects) one server. HTTP servers that need OAuth open the browser and finish sign-in first. */
   async connect(spec: ConnectorSpec): Promise<void> {
     await this.disconnect(spec.id, false);
-    const connection: Connection = { spec, state: 'connecting', detail: 'Connecting…', client: null, tools: [] };
+    const connection: Connection = { spec, prefix: this.uniquePrefix(spec), state: 'connecting', detail: 'Connecting…', client: null, tools: [] };
     this.connections.set(spec.id, connection);
     this.onChange(this.statuses());
     try {
-      const client = await this.open(spec);
+      const client = await this.open(spec, () => this.update(connection, 'connecting', 'Waiting for you to sign in in the browser…'));
       connection.client = client;
       connection.tools = (await listAllTools(client)).map((tool) => toAgentTool(connection, tool));
       client.onclose = () => {
@@ -143,17 +150,42 @@ export class McpManager {
     }
   }
 
-  private async open(spec: ConnectorSpec): Promise<Client> {
-    const client = new Client({ name: 'maitre-desktop', version: '0.3.0' });
+  /** Shows a server that cannot start yet (e.g. a plugin server waiting for an API key) without connecting it. */
+  hold(spec: ConnectorSpec, state: ConnectorState, detail: string): void {
+    const existing = this.connections.get(spec.id);
+    existing?.client?.close().catch(() => undefined);
+    this.connections.set(spec.id, { spec, prefix: this.uniquePrefix(spec), state, detail, client: null, tools: [] });
+    this.onChange(this.statuses());
+  }
+
+  private uniquePrefix(spec: ConnectorSpec): string {
+    const taken = new Set([...this.connections.values()].filter((c) => c.spec.id !== spec.id).map((c) => c.prefix));
+    let prefix = spec.prefix;
+    for (let n = 2; taken.has(prefix); n++) prefix = `${spec.prefix.slice(0, PREFIX_MAX - 2)}_${n}`;
+    return prefix;
+  }
+
+  private async open(spec: ConnectorSpec, signingIn: () => void): Promise<Client> {
+    const client = new Client({ name: 'maitre-desktop', version: CLIENT_VERSION });
     const transport = await spec.transport();
     try {
       await client.connect(transport);
       return client;
     } catch (error) {
-      if (!(error instanceof UnauthorizedError) || !spec.oauth || !(transport instanceof StreamableHTTPClientTransport)) throw error;
+      if (!(error instanceof UnauthorizedError) && spec.fallback) {
+        const legacy = new Client({ name: 'maitre-desktop', version: CLIENT_VERSION });
+        try {
+          await legacy.connect(spec.fallback());
+          return legacy;
+        } catch {
+          throw error;
+        }
+      }
+      if (!(error instanceof UnauthorizedError) || !spec.oauth || !(transport instanceof StreamableHTTPClientTransport || transport instanceof SSEClientTransport)) throw error;
+      signingIn();
       const code = await spec.oauth.waitForCode();
       await transport.finishAuth(code);
-      const retry = new Client({ name: 'maitre-desktop', version: '0.3.0' });
+      const retry = new Client({ name: 'maitre-desktop', version: CLIENT_VERSION });
       await retry.connect(await spec.transport());
       return retry;
     }
@@ -174,21 +206,41 @@ export class McpManager {
   }
 }
 
-export function customSpec(config: McpServerConfig, env: Record<string, string>, oauth: OAuthProvider | undefined): ConnectorSpec {
+export interface CustomOptions {
+  env: Record<string, string>;
+  headers?: Record<string, string>;
+  oauth?: OAuthProvider;
+  kind?: 'custom' | 'plugin';
+  plugin?: string;
+}
+
+/** A user-added or plugin server: stdio command, or a URL (Streamable HTTP with SSE fallback, or SSE only). */
+export function customSpec(config: McpServerConfig, options: CustomOptions): ConnectorSpec {
+  const headers = options.headers ?? {};
+  const hasAuthHeader = Object.keys(headers).some((key) => key.toLowerCase() === 'authorization');
+  const authProvider = hasAuthHeader ? undefined : options.oauth;
+  const requestInit = Object.keys(headers).length ? { headers } : undefined;
+  const url = (): URL => {
+    if (!config.url) throw new Error('No URL set for this MCP server.');
+    return new URL(config.url);
+  };
+  const sse = (): Transport => new SSEClientTransport(url(), { authProvider, requestInit });
   return {
     id: config.id,
     name: config.name,
-    kind: 'custom',
+    kind: options.kind ?? 'custom',
+    plugin: options.plugin,
     prefix: slug(config.name),
-    oauth,
+    oauth: authProvider,
     transport: () => {
       if (config.type === 'stdio') {
         if (!config.command) throw new Error('No command set for this MCP server.');
-        return new StdioClientTransport({ command: config.command, args: config.args ?? [], env, stderr: 'ignore' });
+        return new StdioClientTransport({ command: config.command, args: config.args ?? [], env: options.env, stderr: 'ignore' });
       }
-      if (!config.url) throw new Error('No URL set for this MCP server.');
-      return new StreamableHTTPClientTransport(new URL(config.url), { authProvider: oauth });
+      if (config.type === 'sse') return sse();
+      return new StreamableHTTPClientTransport(url(), { authProvider, requestInit });
     },
+    fallback: config.type === 'http' ? sse : undefined,
   };
 }
 

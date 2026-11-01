@@ -5,7 +5,7 @@ import { PlanPanel } from './Questions';
 import { ToolCard } from './ToolCard';
 import { Markdown } from './Markdown';
 import { Icon } from './Icon';
-import { describeAttachment } from './Composer';
+import { AttachmentIcon, describeAttachment } from './Composer';
 
 type Turn = { kind: 'user'; message: Message; start: number } | { kind: 'assistant'; id: string; steps: AssistantMessage[]; start: number };
 
@@ -127,12 +127,17 @@ export function Thread({ messages, approvals, questions, plan, waiting, compacte
             {turn.kind === 'user' ? (
               <div className="turn user">
                 <div className="user-stack">
-                  {turn.message.role === 'user' && turn.message.attachments?.map((file) => (
+                  {turn.message.role === 'user' && turn.message.attachments?.map((file) => file.kind === 'image' && file.dataUrl ? (
+                    <img key={file.id} className="sent-image" src={file.dataUrl} alt={file.name} title={file.name} />
+                  ) : (
                     <div key={file.id} className="attachment sent" title={file.path}>
-                      <span className="attachment-icon">{file.kind === 'pdf' ? 'PDF' : file.kind === 'docx' ? 'DOC' : 'TXT'}</span>
+                      <AttachmentIcon file={file} />
                       <span className="attachment-text"><b>{file.name}</b><small>{describeAttachment(file)}</small></span>
                     </div>
                   ))}
+                  {turn.message.role === 'user' && turn.message.skill && (
+                    <div className="skill-chip" title={turn.message.skill.dir ?? 'Built-in skill'}><Icon name="book" size={13} /> {turn.message.skill.name}</div>
+                  )}
                   <div className="bubble">{turn.message.content}</div>
                 </div>
               </div>

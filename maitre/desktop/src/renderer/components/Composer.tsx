@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import type { DragEvent, KeyboardEvent, ReactElement } from 'react';
-import type { Attachment, AttachmentResult, Mode } from '../../shared/types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ClipboardEvent, DragEvent, KeyboardEvent, ReactElement } from 'react';
+import type { Attachment, AttachmentResult, Mode, SkillInfo } from '../../shared/types';
 import { api } from '../state';
 import { Icon } from './Icon';
 
@@ -11,14 +11,61 @@ const PLACEHOLDER: Record<Mode, string> = {
 
 const formatSize = (bytes: number): string => (bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
 
+const KIND_LABEL: Record<Attachment['kind'], string> = { pdf: 'PDF', docx: 'Word', text: 'Text', image: 'Image' };
+const KIND_BADGE: Record<Attachment['kind'], string> = { pdf: 'PDF', docx: 'DOC', text: 'TXT', image: 'IMG' };
+
 export function describeAttachment(file: Attachment): string {
-  return [file.kind === 'pdf' ? `PDF${file.pages ? ` · ${file.pages} pages` : ''}` : file.kind === 'docx' ? 'Word' : 'Text', formatSize(file.size)].join(' · ');
+  return [`${KIND_LABEL[file.kind]}${file.kind === 'pdf' && file.pages ? ` · ${file.pages} pages` : ''}`, formatSize(file.size)].join(' · ');
 }
+
+/** The file's badge, or a thumbnail for an image. */
+export function AttachmentIcon({ file }: { file: Attachment }): ReactElement {
+  if (file.kind === 'image' && file.dataUrl) return <img className="attachment-thumb" src={file.dataUrl} alt="" />;
+  return <span className="attachment-icon">{KIND_BADGE[file.kind]}</span>;
+}
+
+const readAsDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error ?? new Error('Could not read the image.'));
+    reader.readAsDataURL(file);
+  });
 
 const shortPath = (dir: string): string => dir.replace(/^\/Users\/[^/]+|^C:\\Users\\[^\\]+/i, '~');
 
-export function Composer({ mode, running, disabled, onSend, onStop, seed, dropped, folder, onChooseFolder, onClearFolder }: {
+const MENU_SIZE = 8;
+
+/** Skills matching what follows the `/`: names that start with it first, then names or descriptions that contain it. */
+function matchSkills(skills: SkillInfo[], query: string): SkillInfo[] {
+  const q = query.toLowerCase();
+  const starts = skills.filter((skill) => skill.name.startsWith(q) || skill.name.split(':').pop()!.startsWith(q));
+  const contains = skills.filter((skill) => !starts.includes(skill) && `${skill.name} ${skill.description}`.toLowerCase().includes(q));
+  return [...starts, ...contains].slice(0, MENU_SIZE);
+}
+
+function SlashMenu({ items, active, onPick, onHover, onManage }: { items: SkillInfo[]; active: number; onPick(skill: SkillInfo): void; onHover(index: number): void; onManage(): void }): ReactElement {
+  return (
+    <div className="slash-menu" role="listbox" aria-label="Skills">
+      {items.map((skill, index) => (
+        <button key={skill.id} type="button" role="option" aria-selected={index === active} className={index === active ? 'on' : ''}
+                onMouseDown={(event) => { event.preventDefault(); onPick(skill); }} onMouseEnter={() => onHover(index)}>
+          <Icon name={skill.kind === 'command' ? 'slash' : 'book'} size={14} />
+          <span className="slash-name">/{skill.name}{skill.argumentHint && <small> {skill.argumentHint}</small>}</span>
+          <span className="slash-desc">{skill.description}</span>
+        </button>
+      ))}
+      {!items.length && <div className="slash-empty">No skill with that name.</div>}
+      <button type="button" className="slash-manage" onMouseDown={(event) => { event.preventDefault(); onManage(); }}>Manage skills…</button>
+    </div>
+  );
+}
+
+export function Composer({ mode, running, disabled, onSend, onStop, seed, dropped, folder, onChooseFolder, onClearFolder, skills, onManageSkills }: {
   mode: Mode;
+  /** Skills and commands offered after `/`. */
+  skills: SkillInfo[];
+  onManageSkills(): void;
   /** Work mode: the task's working folder and whether the user picked it. */
   folder?: { path: string; chosen: boolean };
   onChooseFolder?(): void;
@@ -34,12 +81,28 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
   const [files, setFiles] = useState<Attachment[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [reading, setReading] = useState(false);
+  const [menuIndex, setMenuIndex] = useState(0);
+  const [menuClosed, setMenuClosed] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
+  const slashQuery = /^\/([\w:.-]*)$/.exec(text)?.[1];
+  const menu = useMemo(() => (slashQuery === undefined ? null : matchSkills(skills, slashQuery)), [skills, slashQuery]);
+  const menuOpen = menu !== null && !menuClosed;
+  const invoked = useMemo(() => {
+    const name = /^\/([\w:.-]+)\s/.exec(text)?.[1]?.toLowerCase();
+    return name ? skills.find((skill) => skill.name === name || skill.name.endsWith(`:${name}`)) : undefined;
+  }, [skills, text]);
 
-  const attach = async (paths: string[]): Promise<void> => {
+  const pick = (skill: SkillInfo): void => {
+    setText(`/${skill.name} `);
+    setMenuIndex(0);
+    area.current?.focus();
+  };
+
+  const attach = async (paths: string[], images: File[] = []): Promise<void> => {
     setReading(true);
     try {
-      const results: AttachmentResult[] = await api().attachFiles(paths);
+      const pasted = await Promise.all(images.map(async (image) => api().attachImage(image.name || 'pasted-image.png', await readAsDataUrl(image))));
+      const results: AttachmentResult[] = [...(paths.length || !images.length ? await api().attachFiles(paths) : []), ...pasted];
       setFiles((current) => [...current, ...results.filter((r): r is Attachment => !('error' in r))]);
       setErrors(results.filter((r): r is { name: string; error: string } => 'error' in r).map((r) => `${r.name}: ${r.error}`));
     } finally {
@@ -85,7 +148,34 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
     if (paths.length) attach(paths);
   };
 
+  const onPaste = (event: ClipboardEvent<HTMLTextAreaElement>): void => {
+    const pastedFiles = [...event.clipboardData.files];
+    if (!pastedFiles.length) return;
+    event.preventDefault();
+    const withPath = pastedFiles.map((file) => ({ file, path: api().pathForFile(file) }));
+    const paths = withPath.filter((entry) => entry.path).map((entry) => entry.path);
+    const images = withPath.filter((entry) => !entry.path && entry.file.type.startsWith('image/')).map((entry) => entry.file);
+    if (paths.length || images.length) attach(paths, images);
+  };
+
   const onKey = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (menuOpen && menu.length) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        setMenuIndex((index) => (index + (event.key === 'ArrowDown' ? 1 : menu.length - 1)) % menu.length);
+        return;
+      }
+      if ((event.key === 'Enter' || event.key === 'Tab') && !event.shiftKey && !event.nativeEvent.isComposing) {
+        event.preventDefault();
+        pick(menu[Math.min(menuIndex, menu.length - 1)]);
+        return;
+      }
+    }
+    if (menuOpen && event.key === 'Escape') {
+      event.preventDefault();
+      setMenuClosed(true);
+      return;
+    }
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       submit();
@@ -107,7 +197,7 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
           )}
           {files.map((file) => (
             <div key={file.id} className="attachment" title={file.path}>
-              <span className="attachment-icon">{file.kind === 'pdf' ? 'PDF' : file.kind === 'docx' ? 'DOC' : 'TXT'}</span>
+              <AttachmentIcon file={file} />
               <span className="attachment-text"><b>{file.name}</b><small>{describeAttachment(file)}</small></span>
               <button type="button" className="attachment-remove" aria-label={`Remove ${file.name}`} onClick={() => setFiles((current) => current.filter((f) => f.id !== file.id))}>
                 <Icon name="x" size={13} />
@@ -118,8 +208,14 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
           {errors.map((error) => <div key={error} className="attachment-error" role="alert">{error}</div>)}
         </div>
       )}
+      {invoked && (
+        <div className="attachments">
+          <div className="skill-chip live" title={invoked.description}><Icon name="book" size={13} /> Using skill <b>{invoked.name}</b>{invoked.argumentHint && <small>{invoked.argumentHint}</small>}</div>
+        </div>
+      )}
       <div className={`composer ${mode}`} onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
-        <button type="button" className="attach" onClick={() => attach([])} aria-label="Attach files" title="Attach PDF, Word or text files" disabled={running}>
+        {menuOpen && <SlashMenu items={menu} active={Math.min(menuIndex, Math.max(0, menu.length - 1))} onPick={pick} onHover={setMenuIndex} onManage={onManageSkills} />}
+        <button type="button" className="attach" onClick={() => attach([])} aria-label="Attach files" title="Attach images, PDF, Word or text files" disabled={running}>
           <Icon name="clip" size={18} />
         </button>
         {mode === 'work' && (
@@ -133,8 +229,13 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
           rows={1}
           value={text}
           placeholder={PLACEHOLDER[mode]}
-          onChange={(event) => setText(event.target.value)}
+          onChange={(event) => {
+            setText(event.target.value);
+            setMenuClosed(false);
+            setMenuIndex(0);
+          }}
           onKeyDown={onKey}
+          onPaste={onPaste}
           aria-label="Message"
         />
         {running ? (
@@ -148,7 +249,7 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
         )}
       </div>
       <div className="composer-hint">
-        {mode === 'work' ? 'Work mode can change files and run programs on this computer. Risky actions ask you first.' : 'Maitre can make mistakes. Check important information.'} Drop PDF, Word or text files here.
+        {mode === 'work' ? 'Work mode can change files and run programs on this computer. Risky actions ask you first.' : 'Maitre can make mistakes. Check important information.'} Drop or paste images, PDF, Word or text files here. Type / for skills.
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AccountStatus, ApprovalRequest, Attachment, ConnectorStatus, Memory, QuestionRequest, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, MaitreApi } from '../shared/types';
+import type { AccountStatus, ApprovalRequest, Attachment, ConnectorStatus, Memory, QuestionRequest, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, SkillInfo, MaitreApi } from '../shared/types';
 
 declare global {
   interface Window {
@@ -45,6 +45,8 @@ export interface AppState {
   account: AccountStatus | null;
   connectors: ConnectorStatus[];
   memories: Memory[];
+  /** Skills and commands the user can run with `/` (enabled ones, including the open Work task's project skills). */
+  skills: SkillInfo[];
   waiting: Map<string, 'compacting' | 'model'>;
   signOut(): Promise<void>;
   setMode(mode: Mode): void;
@@ -77,6 +79,8 @@ export function useAppState(): AppState {
   const [account, setAccount] = useState<AccountStatus | null>(null);
   const [connectors, setConnectors] = useState<ConnectorStatus[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [skills, setSkills] = useState<SkillInfo[]>([]);
+  const [skillsVersion, setSkillsVersion] = useState(0);
   const [waiting, setWaiting] = useState<Map<string, 'compacting' | 'model'>>(new Map());
 
   const refreshStatus = useCallback(async () => {
@@ -124,6 +128,8 @@ export function useAppState(): AppState {
         setProcesses(event.processes);
       } else if (event.type === 'memories') {
         setMemories(event.memories);
+      } else if (event.type === 'skills' || event.type === 'plugins') {
+        setSkillsVersion((version) => version + 1);
       } else if (event.type === 'waiting') {
         setWaiting((map) => {
           const next = new Map(map);
@@ -141,6 +147,17 @@ export function useAppState(): AppState {
       clearInterval(timer);
     };
   }, [refreshStatus]);
+
+  const skillsCwd = active?.mode === 'work' ? active.cwd : undefined;
+  useEffect(() => {
+    let current = true;
+    api().listSkills(skillsCwd).then((list) => {
+      if (current) setSkills(list.filter((skill) => skill.enabled && skill.userInvocable));
+    });
+    return () => {
+      current = false;
+    };
+  }, [skillsCwd, skillsVersion]);
 
   const setMode = useCallback((next: Mode) => {
     setModeState(next);
@@ -223,5 +240,5 @@ export function useAppState(): AppState {
 
   const visible = useMemo(() => conversations.filter((entry) => entry.mode === mode && entry.title !== 'New chat'), [conversations, mode]);
 
-  return { mode, conversations: visible, active, running, approvals, questions, processes, settings, status, account, connectors, memories, waiting, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, pendingFolder, chooseFolder, clearFolder, saveSettings, refreshStatus };
+  return { mode, conversations: visible, active, running, approvals, questions, processes, settings, status, account, connectors, memories, skills, waiting, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, pendingFolder, chooseFolder, clearFolder, saveSettings, refreshStatus };
 }

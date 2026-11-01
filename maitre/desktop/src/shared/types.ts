@@ -18,7 +18,7 @@ export interface ToolCall {
   endedAt?: number;
 }
 
-export type AttachmentKind = 'pdf' | 'docx' | 'text';
+export type AttachmentKind = 'pdf' | 'docx' | 'text' | 'image';
 
 export interface Attachment {
   id: string;
@@ -31,9 +31,19 @@ export interface Attachment {
   truncated: boolean;
   /** Extracted text; kept in the main process and the saved conversation. */
   text?: string;
+  /** Images only: the picture as a data URL, sent to the model and shown as a thumbnail. */
+  dataUrl?: string;
 }
 
 export type AttachmentResult = Attachment | { name: string; error: string };
+
+/** A skill or command the user called with `/name`: its instructions travel with the message. */
+export interface InvokedSkill {
+  name: string;
+  arguments: string;
+  instructions: string;
+  dir?: string;
+}
 
 export interface UserMessage {
   id: string;
@@ -41,6 +51,7 @@ export interface UserMessage {
   content: string;
   createdAt: number;
   attachments?: Attachment[];
+  skill?: InvokedSkill;
 }
 
 export interface AssistantMessage {
@@ -118,14 +129,29 @@ export type GoogleService = 'gmail' | 'calendar' | 'drive' | 'docs' | 'sheets';
 
 export const GOOGLE_SERVICES: readonly GoogleService[] = ['gmail', 'calendar', 'drive', 'docs', 'sheets'];
 
+/** `http` is Streamable HTTP (falls back to SSE for older servers), `sse` forces the legacy SSE transport. */
+export type McpTransportType = 'http' | 'sse' | 'stdio';
+
 export interface McpServerConfig {
   id: string;
   name: string;
-  type: 'http' | 'stdio';
+  type: McpTransportType;
   url?: string;
   command?: string;
   args?: string[];
   enabled: boolean;
+  /** Names of environment variables (stdio) whose values are stored encrypted. */
+  envKeys?: string[];
+  /** Names of HTTP headers whose values are stored encrypted (e.g. Authorization). */
+  headerKeys?: string[];
+  /** The gallery entry this server was added from. */
+  catalogId?: string;
+}
+
+/** What the UI sends to add or edit a server: values for env/headers; an empty value keeps the saved one. */
+export interface McpServerInput extends McpServerConfig {
+  env?: Record<string, string>;
+  headers?: Record<string, string>;
 }
 
 export interface GoogleSettings {
@@ -138,14 +164,128 @@ export interface GoogleSettings {
 
 export type ConnectorState = 'connected' | 'connecting' | 'disconnected' | 'needs-auth' | 'error';
 
+export type ConnectorKind = 'google' | 'custom' | 'plugin';
+
 export interface ConnectorStatus {
   id: string;
   name: string;
-  kind: 'google' | 'custom';
+  kind: ConnectorKind;
   state: ConnectorState;
   detail: string;
   tools: string[];
   account?: string;
+  /** Plugin that brought this server. */
+  plugin?: string;
+}
+
+export type SkillSource = 'builtin' | 'user' | 'plugin' | 'project' | 'claude';
+
+export interface SkillInfo {
+  /** Stable key used to enable or disable it, e.g. `user:pdf-tools` or `plugin:docs:pdf`. */
+  id: string;
+  /** What the user types after `/` and the agent passes to use_skill. */
+  name: string;
+  description: string;
+  source: SkillSource;
+  kind: 'skill' | 'command';
+  plugin?: string;
+  /** Folder on disk (built-in skills have none). */
+  dir?: string;
+  enabled: boolean;
+  /** Listed for the agent to pick on its own. */
+  modelInvocable: boolean;
+  /** Offered in the `/` menu. */
+  userInvocable: boolean;
+  argumentHint?: string;
+  /** Supporting files next to SKILL.md (relative paths). */
+  files: string[];
+  editable: boolean;
+}
+
+export interface SkillDraft {
+  name: string;
+  description: string;
+  instructions: string;
+}
+
+export interface SkillDocument extends SkillInfo {
+  instructions: string;
+}
+
+export interface PluginServerInfo {
+  id: string;
+  name: string;
+  /** `npx -y …` or the URL: shown before installing, since installing lets it run. */
+  target: string;
+  /** `${VAR}` placeholders not set in the environment; the user fills them in. */
+  missingVars: string[];
+}
+
+export interface PluginInfo {
+  id: string;
+  name: string;
+  description: string;
+  version?: string;
+  author?: string;
+  /** Where it came from: a GitHub address, a marketplace entry or a folder. */
+  source: string;
+  marketplace?: string;
+  dir: string;
+  enabled: boolean;
+  skills: string[];
+  commands: string[];
+  servers: PluginServerInfo[];
+  /** Parts of Claude Code plugins Maitre does not run (hooks, agents, LSP servers). */
+  ignored: string[];
+  installedAt: number;
+}
+
+/** A downloaded plugin waiting for the user to review and confirm. */
+export interface PluginPreview extends Omit<PluginInfo, 'enabled' | 'installedAt' | 'dir'> {
+  stagingId: string;
+  /** Already installed under this id: confirming updates it. */
+  replaces?: string;
+}
+
+export interface MarketplacePlugin {
+  name: string;
+  description: string;
+  category?: string;
+  author?: string;
+  homepage?: string;
+  installed: boolean;
+}
+
+export interface MarketplaceInfo {
+  id: string;
+  name: string;
+  source: string;
+  description?: string;
+  plugins: MarketplacePlugin[];
+  loaded: boolean;
+  updatedAt: number;
+  error?: string;
+}
+
+/** What a GitHub address or folder turned out to be. */
+export type InstallResult =
+  | { kind: 'plugin'; preview: PluginPreview }
+  | { kind: 'marketplace'; marketplace: MarketplaceInfo }
+  | { kind: 'skills'; skills: SkillInfo[] };
+
+export interface ToolInfo {
+  name: string;
+  description: string;
+  group: string;
+  modes: Mode[];
+  enabled: boolean;
+  /** The Work workflow depends on it, so it cannot be switched off. */
+  locked: boolean;
+}
+
+export interface CommandCheck {
+  command: string;
+  found: boolean;
 }
 
 export interface Settings {
@@ -164,6 +304,12 @@ export interface Settings {
   google: GoogleSettings;
   mcpServers: McpServerConfig[];
   memoryEnabled: boolean;
+  /** Skill ids the user switched off. */
+  disabledSkills: string[];
+  /** Built-in tool names the user switched off. */
+  disabledTools: string[];
+  /** Also offer the skills in ~/.claude/skills (Claude Code). */
+  claudeSkills: boolean;
 }
 
 export type SettingsPatch = Partial<Omit<Settings, 'hasApiKey' | 'hasGithubToken'>> & {
@@ -216,6 +362,9 @@ export type AgentEvent =
   | { type: 'processes'; processes: ProcessInfo[] }
   | { type: 'connectors'; connectors: ConnectorStatus[] }
   | { type: 'memories'; memories: Memory[] }
+  | { type: 'skills' }
+  | { type: 'plugins' }
+  | { type: 'tools' }
   | { type: 'waiting'; conversationId: string; phase: 'compacting' | 'model' | null };
 
 export interface MaitreApi {
@@ -229,6 +378,8 @@ export interface MaitreApi {
   setConversationFolder(id: string, dir: string | null): Promise<string>;
   send(id: string, text: string, attachmentIds?: string[]): Promise<void>;
   attachFiles(paths?: string[]): Promise<AttachmentResult[]>;
+  /** A pasted image that has no file on disk (e.g. a screenshot on the clipboard). */
+  attachImage(name: string, dataUrl: string): Promise<AttachmentResult>;
   pathForFile(file: File): string;
   stop(id: string): Promise<void>;
   decide(approvalId: string, decision: ApprovalDecision): Promise<void>;
@@ -243,9 +394,35 @@ export interface MaitreApi {
   listConnectors(): Promise<ConnectorStatus[]>;
   connectGoogle(services: GoogleService[]): Promise<ConnectorStatus[]>;
   disconnectGoogle(): Promise<ConnectorStatus[]>;
-  saveMcpServer(config: McpServerConfig): Promise<ConnectorStatus[]>;
+  saveMcpServer(config: McpServerInput): Promise<ConnectorStatus[]>;
   removeMcpServer(id: string): Promise<ConnectorStatus[]>;
   reconnectMcpServer(id: string): Promise<ConnectorStatus[]>;
+  /** Adds the servers in a Claude Desktop / VS Code style `mcpServers` JSON; returns how many were added. */
+  importMcpJson(json: string): Promise<number>;
+  checkCommands(commands: string[]): Promise<CommandCheck[]>;
+  listSkills(cwd?: string): Promise<SkillInfo[]>;
+  getSkill(id: string): Promise<SkillDocument | null>;
+  saveSkill(draft: SkillDraft, replaceId?: string): Promise<SkillInfo>;
+  deleteSkill(id: string): Promise<void>;
+  setSkillEnabled(id: string, enabled: boolean): Promise<void>;
+  /** Copies a skill folder (with SKILL.md) chosen in a dialog, or the given one, into the user's skills. */
+  importSkillFolder(dir?: string): Promise<SkillInfo[]>;
+  listTools(): Promise<ToolInfo[]>;
+  setToolEnabled(name: string, enabled: boolean): Promise<void>;
+  listPlugins(): Promise<PluginInfo[]>;
+  /** A GitHub address (owner/repo, URL) or a local folder; folder picker when empty. */
+  inspectSource(source: string): Promise<InstallResult | null>;
+  inspectMarketplacePlugin(marketplaceId: string, name: string): Promise<PluginPreview>;
+  confirmPlugin(stagingId: string): Promise<PluginInfo>;
+  cancelPlugin(stagingId: string): Promise<void>;
+  setPluginEnabled(id: string, enabled: boolean): Promise<void>;
+  removePlugin(id: string): Promise<void>;
+  updatePlugin(id: string): Promise<PluginPreview>;
+  listMarketplaces(): Promise<MarketplaceInfo[]>;
+  refreshMarketplace(id: string): Promise<MarketplaceInfo>;
+  removeMarketplace(id: string): Promise<void>;
+  /** Values for a plugin server's `${VAR}` placeholders (stored encrypted), then reconnects it. */
+  setServerVars(id: string, values: Record<string, string>): Promise<ConnectorStatus[]>;
   listMemories(): Promise<Memory[]>;
   deleteMemory(id: string): Promise<void>;
   clearMemories(): Promise<void>;

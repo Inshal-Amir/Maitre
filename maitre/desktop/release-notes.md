@@ -1,5 +1,7 @@
-- **New look:** a warm new theme (light and dark), a serif "Maitre" wordmark and the new Maitre logo as the app icon.
-- **Fix (0.6.1):** chats and settings from earlier versions now carry over to Maitre reliably.
-- **Fully Maitre:** every part of the app now uses the Maitre name, including the model (`maitre-coder`). Your chats, settings and work folder are carried over automatically.
-- **Update needed:** after the server switch to the new names, versions before 0.6.0 can no longer chat. Install this version over the old one (on Windows, uninstall the old "Zehnora" entry if it is still listed).
-- From 0.5: Maitre by Menthiq (https://maitre.menthiq.com, API https://api.menthiq.com/v1), Connect Google with Maitre's own Google sign-in.
+- **Skills, apps and plugins:** a new Customize screen (sidebar → Skills, apps and plugins). Add skills, connect apps, install plugins and switch tools on or off.
+- **Connector gallery:** 22 ready-made connectors (GitHub, Notion, Linear, Jira, Asana, Canva, Stripe, Supabase, Playwright, Chrome DevTools and more), your own MCP servers, or paste a config from Claude Desktop, Claude Code, Cursor or VS Code.
+- **Plugins:** install Claude Code plugins and skill collections from GitHub or a folder. Every plugin is shown for review before it is installed.
+- **Slash commands:** type `/` in the message box to run a skill.
+- **Images:** attach or paste screenshots and photos; Maitre now reads them.
+- **Long work:** uses the server's new 1M-token context, and answers can be longer.
+- From 0.6: the new Maitre look and app icon; chats and settings carry over from earlier versions.

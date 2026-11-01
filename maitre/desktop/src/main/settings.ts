@@ -38,8 +38,8 @@ const DEFAULTS: StoredSettings = {
   approvalPolicy: 'risky',
   defaultWorkDir: oldWorkDir() ?? path.join(os.homedir(), 'Maitre'),
   searxngUrl: '',
-  contextTokens: 60_000,
-  maxOutputTokens: 8192,
+  contextTokens: 1_048_576,
+  maxOutputTokens: 32_768,
   theme: 'system',
   google: {
     ...bundledGoogleClient(),
@@ -48,6 +48,9 @@ const DEFAULTS: StoredSettings = {
   },
   mcpServers: [],
   memoryEnabled: true,
+  disabledSkills: [],
+  disabledTools: [],
+  claudeSkills: true,
 };
 
 const ENV_SECRETS: Partial<Record<SecretName, string>> = {
@@ -64,6 +67,9 @@ const MOVED: Record<string, string> = {
   'https://console.dubg.dev': 'https://maitre.menthiq.com',
 };
 
+/** Limits saved by older versions that the user never changed; they move up to the new defaults. */
+const OLD_LIMITS = { contextTokens: 60_000, maxOutputTokens: 8192 };
+
 let cache: StoredSettings | null = null;
 
 function load(): StoredSettings {
@@ -73,6 +79,9 @@ function load(): StoredSettings {
     const google = { ...DEFAULTS.google, ...stored.google };
     if (!google.clientId) ({ clientId: google.clientId, clientSecret: google.clientSecret } = DEFAULTS.google);
     const merged = { ...DEFAULTS, ...stored, google };
+    if (merged.contextTokens === OLD_LIMITS.contextTokens && merged.maxOutputTokens === OLD_LIMITS.maxOutputTokens) {
+      ({ contextTokens: merged.contextTokens, maxOutputTokens: merged.maxOutputTokens } = DEFAULTS);
+    }
     const model = merged.model === OLD_MODEL ? DEFAULTS.model : merged.model;
     cache = { ...merged, model, apiBase: MOVED[merged.apiBase] ?? merged.apiBase, consoleBase: MOVED[merged.consoleBase] ?? merged.consoleBase };
   } catch {
@@ -121,7 +130,7 @@ export function saveSettings(patch: SettingsPatch): Settings {
   const next: StoredSettings = { ...load(), ...rest };
   next.apiBase = next.apiBase.trim().replace(/\/+$/, '');
   next.consoleBase = next.consoleBase.trim().replace(/\/+$/, '');
-  next.contextTokens = clampInt(next.contextTokens, 8000, 1_000_000);
+  next.contextTokens = clampInt(next.contextTokens, 8000, 1_048_576);
   next.maxOutputTokens = clampInt(next.maxOutputTokens, 256, 131_072);
   fs.mkdirSync(path.dirname(settingsFile()), { recursive: true });
   fs.writeFileSync(settingsFile(), JSON.stringify(next, null, 2));

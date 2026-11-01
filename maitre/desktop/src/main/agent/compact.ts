@@ -1,6 +1,6 @@
-import type { Conversation, Message, Settings } from '../../shared/types';
+import type { Attachment, Conversation, Message, Settings } from '../../shared/types';
 import type { ToolSchema } from '../llm';
-import { estimateTokens } from './context';
+import { IMAGE_TOKENS, estimateTokens } from './context';
 import { complete } from '../llm';
 
 const START_AT = 0.7;
@@ -8,15 +8,23 @@ const KEEP_RECENT = 0.35;
 const TOOL_RESULT_CHARS = 400;
 const SUMMARY_TOKENS = 3000;
 
+const attachmentTokens = (files: Attachment[] = []): number =>
+  files.reduce((sum, file) => sum + (file.kind === 'image' ? IMAGE_TOKENS : Math.min(60_000, file.text?.length ?? 0) / 3.2), 0);
+
 const messageTokens = (message: Message): number =>
   message.role === 'user'
-    ? estimateTokens(message.content) + Math.min(60_000, (message.attachments ?? []).reduce((sum, file) => sum + (file.text?.length ?? 0), 0)) / 3.2 + 4
+    ? estimateTokens(message.content) + attachmentTokens(message.attachments) + 4
     : estimateTokens(message.content) + message.toolCalls.reduce((sum, call) => sum + estimateTokens(call.arguments) + estimateTokens(call.result ?? '') + 12, 4);
+
+function firstLines(files: Attachment[]): string {
+  const text = files.find((file) => file.kind !== 'image')?.text;
+  return text ? `; first lines: ${text.slice(0, 1500).replace(/\s+/g, ' ')}` : '';
+}
 
 function transcript(messages: Message[]): string {
   return messages
     .map((message) => {
-      if (message.role === 'user') return `USER: ${message.content}${message.attachments?.length ? ` [attached: ${message.attachments.map((file) => file.name).join(', ')}; first lines: ${(message.attachments[0].text ?? '').slice(0, 1500).replace(/\s+/g, ' ')}]` : ''}`;
+      if (message.role === 'user') return `USER: ${message.content}${message.attachments?.length ? ` [attached: ${message.attachments.map((file) => file.name).join(', ')}${firstLines(message.attachments)}]` : ''}`;
       const calls = message.toolCalls.map((call) => `  → ${call.name}(${call.arguments.slice(0, 200)}) [${call.status}]: ${(call.result ?? '').slice(0, TOOL_RESULT_CHARS).replace(/\s+/g, ' ')}`);
       return [message.content ? `ASSISTANT: ${message.content}` : 'ASSISTANT (tools):', ...calls].join('\n');
     })

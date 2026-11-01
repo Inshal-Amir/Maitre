@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import type { ReactElement } from 'react';
 import type { ProcessInfo } from '../shared/types';
+import type { CustomizeTab } from './components/customize';
+import { Customize } from './components/customize';
 import { Composer } from './components/Composer';
 import { Settings } from './components/Settings';
 import { Sidebar } from './components/Sidebar';
@@ -43,6 +45,8 @@ function ProcessMenu({ processes }: { processes: ProcessInfo[] }): ReactElement 
 export function App(): ReactElement {
   const state = useAppState();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [customize, setCustomize] = useState<CustomizeTab | null>(null);
+  const closeCustomize = useCallback(() => setCustomize(null), []);
   const [seed, setSeed] = useState<{ text: string; nonce: number } | null>(null);
   const [dropped, setDropped] = useState<{ paths: string[]; nonce: number } | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -68,6 +72,7 @@ export function App(): ReactElement {
         onDelete={state.remove}
         onRename={state.rename}
         onSettings={() => setSettingsOpen(true)}
+        onCustomize={() => setCustomize('skills')}
       />
       <main
         className="main"
@@ -103,10 +108,12 @@ export function App(): ReactElement {
         ) : (
           <Welcome mode={mode} onPick={(text) => setSeed({ text, nonce: Date.now() })} />
         )}
-        {!needsAccount && <Composer mode={mode} running={running} disabled={false} onSend={state.send} onStop={state.stop} seed={seed} dropped={dropped}
+        {!needsAccount && <Composer mode={mode} running={running} disabled={false} onSend={state.send} onStop={state.stop} seed={seed} dropped={dropped} skills={state.skills} onManageSkills={() => setCustomize('skills')}
             folder={workDir ? { path: workDir, chosen: folderChosen } : undefined} onChooseFolder={state.chooseFolder} onClearFolder={state.clearFolder} />}
       </main>
-      {settingsOpen && state.settings && <Settings settings={state.settings} status={state.status} account={state.account} connectors={state.connectors} memories={state.memories} onSignOut={state.signOut} onSave={state.saveSettings} onClose={closeSettings} />}
+      {settingsOpen && state.settings && <Settings settings={state.settings} status={state.status} account={state.account} connectors={state.connectors} memories={state.memories} onSignOut={state.signOut} onSave={state.saveSettings} onClose={closeSettings}
+          onCustomize={(tab) => { setSettingsOpen(false); setCustomize(tab); }} />}
+      {customize && state.settings && <Customize tab={customize} settings={state.settings} connectors={state.connectors} cwd={active?.mode === 'work' ? active.cwd : undefined} onTab={setCustomize} onClose={closeCustomize} />}
     </div>
   );
 }

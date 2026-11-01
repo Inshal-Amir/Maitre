@@ -49,7 +49,7 @@ describe('custom MCP server over stdio (real SDK server)', () => {
     const events: ConnectorStatus[][] = [];
     const manager = new McpManager((statuses) => events.push(statuses));
     const env = { PATH: process.env.PATH ?? '' };
-    await manager.connect(customSpec({ id: 'notes', name: 'My Notes', type: 'stdio', command: process.execPath, args: [path.join(__dirname, 'fixtures/notes-server.mjs')], enabled: true }, env, undefined));
+    await manager.connect(customSpec({ id: 'notes', name: 'My Notes', type: 'stdio', command: process.execPath, args: [path.join(__dirname, 'fixtures/notes-server.mjs')], enabled: true }, { env }));
     const [status] = manager.statuses();
     expect(status).toMatchObject({ state: 'connected', name: 'My Notes' });
     expect(status.tools.sort()).toEqual(['my_notes_add_note', 'my_notes_delete_all', 'my_notes_list_notes']);
@@ -66,7 +66,7 @@ describe('custom MCP server over stdio (real SDK server)', () => {
 
   it('reports a server that fails to start', async () => {
     const manager = new McpManager(() => undefined);
-    await manager.connect(customSpec({ id: 'bad', name: 'Bad', type: 'stdio', command: 'definitely-not-a-program-xyz', args: [], enabled: true }, { PATH: '' }, undefined));
+    await manager.connect(customSpec({ id: 'bad', name: 'Bad', type: 'stdio', command: 'definitely-not-a-program-xyz', args: [], enabled: true }, { env: { PATH: '' } }));
     expect(manager.statuses()[0].state).toBe('error');
   });
 });

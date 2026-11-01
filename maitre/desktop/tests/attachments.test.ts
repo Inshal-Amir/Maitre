@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { Attachment, AssistantMessage, Conversation, Settings } from '../src/shared/types';
-import { extractDocument } from '../src/main/documents';
-import { buildMessages, userContent } from '../src/main/agent/context';
+import { extractDocument, readImage } from '../src/main/documents';
+import { IMAGE_TOKENS, buildMessages, contentTokens, userContent, userParts } from '../src/main/agent/context';
 import { Runtime } from '../src/main/agent/runtime';
 import { toolsFor } from '../src/main/tools';
 import { makePdf } from './fixtures/make-pdf.mjs';
@@ -33,7 +33,7 @@ describe('document extraction', () => {
     expect((await extractDocument(notes)).text).toBe('# Notes\nhello');
     const image = path.join(dir, 'photo.png');
     fs.writeFileSync(image, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 0]));
-    await expect(extractDocument(image)).rejects.toThrow(/text only/);
+    await expect(extractDocument(image)).rejects.toThrow(/attach it to the chat/);
     const blob = path.join(dir, 'data.bin');
     fs.writeFileSync(blob, Buffer.from([1, 0, 2, 0, 3]));
     await expect(extractDocument(blob)).rejects.toThrow(/binary/);
@@ -72,6 +72,56 @@ describe('attachments in the model request', () => {
     expect(model.requests[0].messages[1].content).toContain('Total due: 5000 PKR');
     expect(conversation.title).toBe('invoice.pdf');
     expect((conversation.messages[1] as AssistantMessage).content).toBe('The total is 5000 PKR.');
+    await model.close();
+  });
+});
+
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+const image = (name: string, extra: Partial<Attachment> = {}): Attachment => ({
+  id: name, name, path: path.join(dir, name), size: PNG.length, kind: 'image', chars: 0, truncated: false, dataUrl: `data:image/png;base64,${PNG.toString('base64')}`, ...extra,
+});
+
+describe('images', () => {
+  it('reads PNG and JPEG as data URLs and refuses other formats and huge files', () => {
+    const png = path.join(dir, 'shot.png');
+    fs.writeFileSync(png, PNG);
+    expect(readImage(png)).toBe(`data:image/png;base64,${PNG.toString('base64')}`);
+    const jpg = path.join(dir, 'photo.JPG');
+    fs.writeFileSync(jpg, PNG);
+    expect(readImage(jpg)).toMatch(/^data:image\/jpeg;base64,/);
+    const heic = path.join(dir, 'photo.heic');
+    fs.writeFileSync(heic, PNG);
+    expect(() => readImage(heic)).toThrow(/PNG or JPEG/);
+    const big = path.join(dir, 'big.png');
+    fs.writeFileSync(big, Buffer.alloc(8_000_001));
+    expect(() => readImage(big)).toThrow(/larger than 8 MB/);
+  });
+
+  it('sends images as image_url parts next to the text', () => {
+    const parts = userParts({ id: 'u', role: 'user', content: 'What is in this?', createdAt: 0, attachments: [image('shot.png'), attachment('Invoice 1042')] }, 'chat', true);
+    expect(Array.isArray(parts)).toBe(true);
+    const [text, picture] = parts as Exclude<typeof parts, string>;
+    expect(text).toMatchObject({ type: 'text' });
+    expect(text.type === 'text' && text.text).toContain('Invoice 1042');
+    expect(text.type === 'text' && text.text).not.toContain('base64');
+    expect(picture).toEqual({ type: 'image_url', image_url: { url: image('shot.png').dataUrl } });
+    expect(contentTokens(parts)).toBeLessThan(IMAGE_TOKENS + 100);
+  });
+
+  it('keeps images only in the latest three user turns', () => {
+    const turns = [1, 2, 3, 4].map((n) => ({ id: `u${n}`, role: 'user' as const, content: `turn ${n}`, createdAt: n, attachments: [image(`pic${n}.png`)] }));
+    const built = buildMessages('sys', turns, [], 200_000, 1000);
+    expect(built[1].content).toBe('turn 1\n\n[image: pic1.png — no longer shown]');
+    for (const message of built.slice(2)) expect(Array.isArray(message.content)).toBe(true);
+  });
+
+  it('sends an attached image to the model through the runtime', async () => {
+    const model = await startMockModel(() => ({ content: 'A one-pixel picture.' }));
+    const runtime = new Runtime({ settings: () => ({ apiBase: model.url, model: 'maitre-coder', approvalPolicy: 'risky', contextTokens: 60000, maxOutputTokens: 500, memoryEnabled: true }) as Settings, apiKey: () => model.apiKey, save: () => undefined, emit: () => undefined });
+    const conversation: Conversation = { id: '00000000-0000-4000-8000-00000000000d', mode: 'chat', title: 'New chat', createdAt: 0, updatedAt: 0, messages: [] };
+    await runtime.send(conversation, 'Describe it', [image('shot.png')]);
+    const sent = model.requests[0].messages[1].content;
+    expect(sent).toEqual([expect.objectContaining({ type: 'text' }), { type: 'image_url', image_url: { url: image('shot.png').dataUrl } }]);
     await model.close();
   });
 });

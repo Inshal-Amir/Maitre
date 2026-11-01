@@ -11,6 +11,7 @@ import { toolsFor, schemasFor, toSchema } from '../tools';
 import { ToolError } from '../tools/types';
 import { buildMessages } from './context';
 import { compactIfNeeded } from './compact';
+import { resolveInvocation, skillsPrompt } from '../skills';
 import { summarize } from '../store';
 import { systemPrompt } from './prompts';
 import { ApiError, complete } from '../llm';
@@ -111,7 +112,8 @@ export class Runtime {
 
   async send(conversation: Conversation, text: string, attachments: Attachment[] = []): Promise<void> {
     if (this.runs.has(conversation.id)) throw new Error('This chat is still working. Stop it or wait for it to finish.');
-    const user: UserMessage = { id: newId(), role: 'user', content: text, createdAt: Date.now(), ...(attachments.length ? { attachments } : {}) };
+    const skill = resolveInvocation(text, conversation.mode === 'work' ? this.workDir(conversation) : undefined);
+    const user: UserMessage = { id: newId(), role: 'user', content: text, createdAt: Date.now(), ...(attachments.length ? { attachments } : {}), ...(skill ? { skill } : {}) };
     conversation.messages.push(user);
     if (conversation.title === 'New chat') conversation.title = titleFrom(attachments.length && text.startsWith('Please look at') ? attachments[0].name : text);
     this.deps.save(conversation);
@@ -132,8 +134,9 @@ export class Runtime {
 
   private async loop(conversation: Conversation, signal: AbortSignal): Promise<void> {
     const extra = this.deps.extraTools?.() ?? [];
-    const tools = new Map([...toolsFor(conversation.mode), ...extra.map((tool): [string, Tool] => [tool.name, tool])]);
-    const schemas = [...schemasFor(conversation.mode), ...extra.map(toSchema)];
+    const disabled = this.deps.settings().disabledTools ?? [];
+    const tools = new Map([...toolsFor(conversation.mode, disabled), ...extra.map((tool): [string, Tool] => [tool.name, tool])]);
+    const schemas = [...schemasFor(conversation.mode, disabled), ...extra.map(toSchema)];
     const failures = new Map<string, number>();
     const maxSteps = MAX_STEPS[conversation.mode];
 
@@ -153,7 +156,8 @@ export class Runtime {
         ? `The user chose the working folder for this task: ${cwd}. Work there: do not ask where to create the project. For a new project, create a subfolder inside it if that fits better, and call set_project with this folder or that subfolder before writing files.`
         : '';
       const memory = [chosen, conversation.mode === 'work' ? projectMemory(cwd, conversation.plan) : ''].filter(Boolean).join('\n\n');
-      const system = systemPrompt(conversation.mode, cwd, this.deps.connectedApps?.() ?? [], memory, settings.defaultWorkDir);
+      const skills = skillsPrompt(conversation.mode === 'work' ? cwd : undefined);
+      const system = systemPrompt(conversation.mode, cwd, this.deps.connectedApps?.() ?? [], memory, settings.defaultWorkDir, skills);
       await this.compact(conversation, message, settings, apiKey, system, schemas, signal);
       if (signal.aborted) {
         this.finishWithError(conversation, message, 'Stopped.');

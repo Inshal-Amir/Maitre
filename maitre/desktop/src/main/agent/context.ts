@@ -1,11 +1,19 @@
-import type { ApiMessage, ToolSchema } from '../llm';
-import type { Message, Mode, ToolCall, UserMessage } from '../../shared/types';
+import type { ApiMessage, ContentPart, ToolSchema } from '../llm';
+import type { InvokedSkill, Message, Mode, ToolCall, UserMessage } from '../../shared/types';
 
 const CHARS_PER_TOKEN = 3.2;
 const RECENT_TOOL_RESULTS = 8;
 const SHRUNK_RESULT_CHARS = 700;
 
+/** What one image costs the model, whatever its file size (the vision encoder resizes it). */
+export const IMAGE_TOKENS = 1500;
+/** Images are sent only with the latest user turns; older ones stay as a note. */
+const IMAGE_TURNS = 3;
+
 export const estimateTokens = (text: string): number => Math.ceil(text.length / CHARS_PER_TOKEN);
+
+export const contentTokens = (content: string | ContentPart[]): number =>
+  typeof content === 'string' ? estimateTokens(content) : content.reduce((sum, part) => sum + (part.type === 'text' ? estimateTokens(part.text) : IMAGE_TOKENS), 0);
 
 function toolResultText(call: ToolCall): string {
   if (call.status === 'denied') return 'The user denied this action. Do not retry it; choose another approach or explain what is needed.';
@@ -18,9 +26,11 @@ const INLINE_CHARS = 60_000;
 
 /** A user message as the model sees it: the text plus the extracted content of attached files (shared inline budget). */
 export function userContent(message: UserMessage, mode: Mode): string {
-  if (!message.attachments?.length) return message.content;
+  const text = message.skill ? `${skillBlock(message.skill, mode)}\n\n${message.content}` : message.content;
+  const documents = (message.attachments ?? []).filter((file) => file.kind !== 'image');
+  if (!documents.length) return text;
   let left = INLINE_CHARS;
-  const blocks = message.attachments.map((file) => {
+  const blocks = documents.map((file) => {
     const text = file.text ?? '';
     const shown = text.slice(0, Math.max(0, left));
     left -= shown.length;
@@ -29,7 +39,22 @@ export function userContent(message: UserMessage, mode: Mode): string {
     const more = !cut ? '' : mode === 'work' ? `\n[… only the first ${shown.length.toLocaleString('en')} characters are shown here; read the rest with read_file on ${file.path} using offset/limit]` : `\n[… only the first ${shown.length.toLocaleString('en')} characters are shown; the rest was left out to fit the model's memory]`;
     return `<attached_file name="${file.name}">\n(${meta})\n${shown}${more}\n</attached_file>`;
   });
-  return `${message.content}\n\n${blocks.join('\n\n')}`;
+  return `${text}\n\n${blocks.join('\n\n')}`;
+}
+
+/** The user turn with its images as vision parts; with `showImages` false the images are only named. */
+export function userParts(message: UserMessage, mode: Mode, showImages: boolean): string | ContentPart[] {
+  const text = userContent(message, mode);
+  const images = (message.attachments ?? []).filter((file) => file.kind === 'image' && file.dataUrl);
+  if (!images.length) return text;
+  if (!showImages) return `${text}\n\n${images.map((file) => `[image: ${file.name} — no longer shown]`).join('\n')}`;
+  return [{ type: 'text', text }, ...images.map((file): ContentPart => ({ type: 'image_url', image_url: { url: file.dataUrl! } }))];
+}
+
+/** The instructions of a skill the user called with `/name`, in front of their message. */
+function skillBlock(skill: InvokedSkill, mode: Mode): string {
+  const folder = skill.dir ? `\n(Skill folder: ${skill.dir}${mode === 'chat' ? '; read its files with read_skill_file' : ''})` : '';
+  return `<skill name="${skill.name}">\nThe user ran the skill /${skill.name}${skill.arguments ? ` with: ${skill.arguments}` : ''}. Follow these instructions for this request.${folder}\n\n${skill.instructions}\n</skill>`;
 }
 
 /** One user turn, or one assistant step with its tool results; groups are dropped whole so tool results stay paired. */
@@ -37,9 +62,11 @@ type Group = ApiMessage[];
 
 function toGroups(messages: Message[], mode: Mode): Group[] {
   const groups: Group[] = [];
+  let userTurnsLeft = messages.reduce((count, message) => count + (message.role === 'user' ? 1 : 0), 0);
   for (const message of messages) {
     if (message.role === 'user') {
-      groups.push([{ role: 'user', content: userContent(message, mode) }]);
+      groups.push([{ role: 'user', content: userParts(message, mode, userTurnsLeft <= IMAGE_TURNS) }]);
+      userTurnsLeft--;
       continue;
     }
     const calls = message.toolCalls.filter((call) => call.status !== 'pending');
@@ -59,7 +86,7 @@ function toGroups(messages: Message[], mode: Mode): Group[] {
 
 const sizeOf = (message: ApiMessage): number => {
   if (message.role === 'assistant') return estimateTokens((message.content ?? '') + JSON.stringify(message.tool_calls ?? '')) + 4;
-  return estimateTokens(message.content) + 4;
+  return contentTokens(message.content) + 4;
 };
 
 function shrinkOldToolResults(groups: Group[]): void {

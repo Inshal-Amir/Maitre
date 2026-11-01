@@ -30,7 +30,7 @@ async function withScript(script: MockReply[]): Promise<void> {
 beforeEach(() => {
   workDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'maitre-work-')));
   events = [];
-  settings = { apiBase: '', consoleBase: '', accountEmail: '', model: 'maitre-coder', hasApiKey: true, hasGithubToken: false, approvalPolicy: 'risky', defaultWorkDir: workDir, searxngUrl: '', contextTokens: 60000, maxOutputTokens: 2048, theme: 'system', google: { clientId: '', clientSecret: '', services: [], official: false }, mcpServers: [], memoryEnabled: true };
+  settings = { apiBase: '', consoleBase: '', accountEmail: '', model: 'maitre-coder', hasApiKey: true, hasGithubToken: false, approvalPolicy: 'risky', defaultWorkDir: workDir, searxngUrl: '', contextTokens: 60000, maxOutputTokens: 2048, theme: 'system', google: { clientId: '', clientSecret: '', services: [], official: false }, mcpServers: [], memoryEnabled: true, disabledSkills: [], disabledTools: [], claudeSkills: false };
 });
 
 afterEach(async () => {

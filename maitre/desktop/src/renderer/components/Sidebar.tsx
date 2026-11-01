@@ -61,7 +61,7 @@ function Row({ entry, active, running, onOpen, onDelete, onRename }: {
   );
 }
 
-export function Sidebar({ mode, conversations, activeId, running, status, onMode, onNew, onOpen, onDelete, onRename, onSettings }: {
+export function Sidebar({ mode, conversations, activeId, running, status, onMode, onNew, onOpen, onDelete, onRename, onSettings, onCustomize }: {
   mode: Mode;
   conversations: ConversationSummary[];
   activeId: string | null;
@@ -73,6 +73,7 @@ export function Sidebar({ mode, conversations, activeId, running, status, onMode
   onDelete(id: string): void;
   onRename(id: string, title: string): void;
   onSettings(): void;
+  onCustomize(): void;
 }): ReactElement {
   const groups = useMemo(() => groupByAge(conversations), [conversations]);
   return (
@@ -115,6 +116,10 @@ export function Sidebar({ mode, conversations, activeId, running, status, onMode
           </div>
         ))}
       </nav>
+      <button type="button" className="customize-link" onClick={onCustomize}>
+        <Icon name="puzzle" size={16} />
+        <span>Skills, apps and plugins</span>
+      </button>
       <div className="sidebar-foot">
         <button type="button" className="status" onClick={onSettings} title={status?.detail}>
           <span className={`dot ${status?.state ?? 'offline'}`} />

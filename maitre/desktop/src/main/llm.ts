@@ -6,8 +6,11 @@ export interface ApiToolCall {
   function: { name: string; arguments: string };
 }
 
+export type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
+
 export type ApiMessage =
-  | { role: 'system' | 'user'; content: string }
+  | { role: 'system'; content: string }
+  | { role: 'user'; content: string | ContentPart[] }
   | { role: 'assistant'; content: string | null; tool_calls?: ApiToolCall[] }
   | { role: 'tool'; tool_call_id: string; content: string };
 
@@ -248,12 +251,15 @@ export async function complete(request: CompletionRequest, handlers: StreamHandl
   }
 }
 
-export async function checkModel(apiBase: string, apiKey: string): Promise<{ status: number; models: string[] }> {
+/** Model list from /models, plus the context window the server reports for `model` (when it does). */
+export async function checkModel(apiBase: string, apiKey: string, model?: string): Promise<{ status: number; models: string[]; contextLength?: number }> {
   try {
     const response = await fetch(`${apiBase}/models`, { headers: { authorization: `Bearer ${apiKey}` }, signal: AbortSignal.timeout(8000) });
     if (!response.ok) return { status: response.status, models: [] };
-    const body = (await response.json()) as { data?: { id: string }[] };
-    return { status: 200, models: (body.data ?? []).map((model) => model.id) };
+    const body = (await response.json()) as { data?: { id: string; context_length?: number }[] };
+    const data = body.data ?? [];
+    const contextLength = data.find((entry) => entry.id === model)?.context_length;
+    return { status: 200, models: data.map((entry) => entry.id), ...(contextLength && contextLength > 0 ? { contextLength } : {}) };
   } catch {
     return { status: 0, models: [] };
   }
