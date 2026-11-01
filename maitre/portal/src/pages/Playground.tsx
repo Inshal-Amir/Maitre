@@ -55,7 +55,7 @@ function Message({ m }: { m: Msg }) {
     <div className="msg user">
       <div className="user-stack">
         {!!m.images?.length && <div className="msg-images">{m.images.map((url, i) => <img key={i} src={url} alt={`Attached image ${i + 1}`} />)}</div>}
-        {m.content && <div className="bubble">{m.content}</div>}
+        {m.content && <div className="bubble" dir="auto">{m.content}</div>}
       </div>
     </div>
   );

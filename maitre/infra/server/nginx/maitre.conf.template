@@ -37,6 +37,21 @@ server {
         root /usr/share/nginx/portal;
         try_files $uri /index.html;
     }
+    # add_header in a location replaces the server-level ones, so the security headers are repeated.
+    location = /index.html {
+        root /usr/share/nginx/portal;
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy same-origin always;
+        add_header X-Frame-Options DENY always;
+    }
+    location /assets/ {
+        root /usr/share/nginx/portal;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy same-origin always;
+        add_header X-Frame-Options DENY always;
+    }
 }
 
 server {

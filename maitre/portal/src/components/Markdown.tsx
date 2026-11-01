@@ -60,7 +60,7 @@ function CodeBlock({ children }: { children?: ReactNode }) {
 function Markdown({ text, streaming = false }: { text: string; streaming?: boolean }) {
   const source = streaming && (text.match(/^```/gm)?.length ?? 0) % 2 === 1 ? `${text}\n\`\`\`` : text;
   return (
-    <div className={`markdown ${streaming ? 'streaming' : ''}`}>
+    <div dir="auto" className={`markdown ${streaming ? 'streaming' : ''}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
         pre: CodeBlock,
         a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a>,
