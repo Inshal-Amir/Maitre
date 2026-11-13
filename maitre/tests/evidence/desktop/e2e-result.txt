@@ -10,6 +10,7 @@ PASS chat reply streams and renders markdown
 PASS reasoning is shown as a collapsed block
 PASS chat mode sends only chat tools
 PASS chat appears in history
+PASS Retry runs a failed turn again
 PASS web search returns live results through the hidden browser
 PASS github search returns repositories
 PASS work mode writes a file in the working folder
@@ -30,6 +31,8 @@ PASS folder button shows the chosen working folder
 PASS agent is told to work in the chosen folder
 PASS commands run in the chosen folder
 PASS removing the folder chip goes back to the default folder
+PASS create_file makes a real PDF and shows it as a card
+PASS a designed HTML page with SVG shapes is printed to a 2-page PDF
 PASS paperclip attaches a PDF and shows its pages
 PASS PDF text reaches the model with the message
 PASS sent message shows the file chip
@@ -53,4 +56,4 @@ PASS the skill instructions reach the model
 PASS installed plugin skills are listed for the agent
 PASS switched-off tools are not sent
 PASS conversations are saved to disk
-55/55 passed on darwin 2026-11-01T17:12:54.537Z
+58/58 passed on darwin 2026-11-02T17:22:05.611Z

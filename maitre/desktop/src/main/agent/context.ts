@@ -1,5 +1,5 @@
 import type { ApiMessage, ContentPart, ToolSchema } from '../llm';
-import type { InvokedSkill, Message, Mode, ToolCall, UserMessage } from '../../shared/types';
+import type { AssistantMessage, InvokedSkill, Message, Mode, ToolCall, UserMessage } from '../../shared/types';
 
 const CHARS_PER_TOKEN = 3.2;
 const RECENT_TOOL_RESULTS = 8;
@@ -17,7 +17,7 @@ export const contentTokens = (content: string | ContentPart[]): number =>
 
 function toolResultText(call: ToolCall): string {
   if (call.status === 'denied') return 'The user denied this action. Do not retry it; choose another approach or explain what is needed.';
-  if (call.status === 'cancelled') return 'Cancelled by the user.';
+  if (call.status === 'cancelled') return 'Not run: the step was stopped (by the user or a dropped connection) before this tool ran.';
   if (call.status === 'error') return `Error: ${call.result ?? 'unknown error'}`;
   return call.result ?? '(no result)';
 }
@@ -57,6 +57,27 @@ function skillBlock(skill: InvokedSkill, mode: Mode): string {
   return `<skill name="${skill.name}">\nThe user ran the skill /${skill.name}${skill.arguments ? ` with: ${skill.arguments}` : ''}. Follow these instructions for this request.${folder}\n\n${skill.instructions}\n</skill>`;
 }
 
+/** A tool call from a step that failed or was stopped before the call started: it never ran, so the model does not see it. */
+const neverRan = (message: AssistantMessage, call: ToolCall): boolean => Boolean(message.error) && call.status === 'cancelled' && !call.startedAt;
+
+/** Adds the per-step context after the last message, leaving everything before it unchanged for the server's prompt cache. */
+export function withContext(messages: ApiMessage[], context: string): ApiMessage[] {
+  const last = messages[messages.length - 1];
+  if (!last || last.role === 'system' || last.role === 'assistant') return [...messages, { role: 'user', content: context }];
+  const content = typeof last.content === 'string' ? `${last.content}\n\n${context}` : [...last.content, { type: 'text' as const, text: context }];
+  return [...messages.slice(0, -1), { ...last, content } as ApiMessage];
+}
+
+/** Tool call arguments as the model must see them: a JSON object. A call cut off mid-stream is sent as `{}`, since llama.cpp rejects the whole request over broken JSON in history. */
+export function validArguments(text: string): string {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed) ? text : '{}';
+  } catch {
+    return '{}';
+  }
+}
+
 /** One user turn, or one assistant step with its tool results; groups are dropped whole so tool results stay paired. */
 type Group = ApiMessage[];
 
@@ -69,13 +90,15 @@ function toGroups(messages: Message[], mode: Mode): Group[] {
       userTurnsLeft--;
       continue;
     }
-    const calls = message.toolCalls.filter((call) => call.status !== 'pending');
-    if (!message.content && !calls.length) continue;
+    const calls = message.toolCalls.filter((call) => call.status !== 'pending' && !neverRan(message, call));
+    const cutOff = Boolean(message.error) && calls.length < message.toolCalls.length;
+    const content = cutOff ? [message.content, '[This step was cut off before its tool calls finished; they did not run.]'].filter(Boolean).join('\n\n') : message.content;
+    if (!content && !calls.length) continue;
     const group: Group = [
       {
         role: 'assistant',
-        content: message.content || null,
-        ...(calls.length ? { tool_calls: calls.map((call) => ({ id: call.id, type: 'function' as const, function: { name: call.name, arguments: call.arguments || '{}' } })) } : {}),
+        content: content || null,
+        ...(calls.length ? { tool_calls: calls.map((call) => ({ id: call.id, type: 'function' as const, function: { name: call.name, arguments: validArguments(call.arguments) } })) } : {}),
       },
     ];
     for (const call of calls) group.push({ role: 'tool', tool_call_id: call.id, content: toolResultText(call) });
@@ -88,6 +111,10 @@ const sizeOf = (message: ApiMessage): number => {
   if (message.role === 'assistant') return estimateTokens((message.content ?? '') + JSON.stringify(message.tool_calls ?? '')) + 4;
   return contentTokens(message.content) + 4;
 };
+
+/** Rough size of a whole request as the model reads it, tool definitions included. */
+export const requestTokens = (messages: ApiMessage[], tools: ToolSchema[]): number =>
+  messages.reduce((sum, message) => sum + sizeOf(message), estimateTokens(JSON.stringify(tools)));
 
 function shrinkOldToolResults(groups: Group[]): void {
   let seen = 0;

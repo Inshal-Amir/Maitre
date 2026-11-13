@@ -178,6 +178,9 @@ async function modelStatus(): Promise<ModelStatus> {
   return { state: 'offline', detail: status ? `HTTP ${status}` : 'Cannot reach the model API' };
 }
 
+
+/** Document types the chat may open in their default app; anything that could run code is refused. */
+const OPENABLE = /\.(pdf|docx|pptx|md|html)$/i;
 function registerIpc(): void {
   const handle = <A extends unknown[], R>(channel: string, fn: (...args: A) => R): void => {
     ipcMain.handle(channel, (_event, ...args) => fn(...(args as A)));
@@ -231,6 +234,9 @@ function registerIpc(): void {
     runtime.send(conversation, trimmed, attachments).catch((error: Error) => console.error('[maitre] run failed', error));
   });
   handle('agent:stop', (id: string) => runtime.stop(id));
+  handle('agent:retry', (id: string) => {
+    runtime.retry(requireConversation(id)).catch((error: Error) => console.error('[maitre] retry failed', error));
+  });
   handle('agent:decide', (id: string, decision: ApprovalDecision) => runtime.approvals.decide(id, decision));
   handle('agent:answer', (id: string, answers: string[]) => runtime.questions.answer(id, answers));
   handle('settings:get', () => getSettings());
@@ -304,6 +310,11 @@ function registerIpc(): void {
   });
   handle('shell:open-external', (url: string) => (/^https?:\/\//i.test(url) ? shell.openExternal(url) : undefined));
   handle('shell:reveal', (target: string) => shell.showItemInFolder(target));
+  handle('shell:open-document', async (target: string) => {
+    if (!OPENABLE.test(target) || !fs.existsSync(target)) throw new Error('Only documents Maitre created can be opened from the chat.');
+    const error = await shell.openPath(target);
+    if (error) throw new Error(error);
+  });
 }
 
 function createWindow(): void {

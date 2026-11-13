@@ -51,11 +51,16 @@ describe('Work agent: understand, workspace, plan, memory', () => {
 
     const last: MockRequest = model.requests[model.requests.length - 1];
     const system = last.messages[0].content ?? '';
-    expect(system).toContain('<brief>');
-    expect(system).toContain('Purpose: personal portfolio');
-    expect(system).toContain('[~] Scaffold with Vite');
-    expect(system).toContain('Chose Vite');
+    const context = last.messages[last.messages.length - 1].content ?? '';
+    expect(context).toContain('<context>');
+    expect(context).toContain('<brief>');
+    expect(context).toContain('Purpose: personal portfolio');
+    expect(context).toContain('[~] Scaffold with Vite');
+    expect(context).toContain('Chose Vite');
+    expect(system).not.toContain('<brief>');
     expect(system).toContain(`Working folder: ${project}`);
+    const earlier = model.requests[model.requests.length - 2].messages;
+    expect(last.messages.slice(0, earlier.length - 1)).toEqual(earlier.slice(0, -1));
     expect(model.requests[0].messages[0].content).toContain(`inside ${root}`);
     expect(model.requests[0].tools?.map((tool) => tool.function.name)).toEqual(expect.arrayContaining(['ask_user', 'set_project', 'update_plan', 'update_brief', 'add_note', 'github_read_file']));
     await model.close();

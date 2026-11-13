@@ -40,6 +40,7 @@ const TOOL_ICONS: Record<string, IconName> = {
   use_skill: 'book',
   read_skill_file: 'book',
   create_skill: 'book',
+  create_file: 'file',
 };
 
 const STATUS_LABEL: Record<ToolCall['status'], string> = {
@@ -109,6 +110,24 @@ function ApprovalBox({ request }: { request: ApprovalRequest }): ReactElement {
   );
 }
 
+const FILE_BADGE: Record<string, string> = { pdf: 'PDF', docx: 'DOC', pptx: 'PPT', md: 'MD', html: 'HTML' };
+
+/** The document a create_file call saved, shown as a card the user can open. */
+function CreatedFile({ result }: { result: string }): ReactElement | null {
+  const file = /^Created (.+)$/m.exec(result)?.[1];
+  if (!file) return null;
+  const name = file.split(/[\\/]/).pop() ?? file;
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  return (
+    <div className="created-file">
+      <span className={`created-badge ${ext}`}>{FILE_BADGE[ext] ?? ext.toUpperCase()}</span>
+      <span className="created-text"><b>{name}</b><small>{file.slice(0, file.length - name.length - 1)}</small></span>
+      <button type="button" className="btn small primary" onClick={() => api().openDocument(file)}>Open</button>
+      <button type="button" className="btn small" onClick={() => api().revealPath(file)}>Show in folder</button>
+    </div>
+  );
+}
+
 export function ToolCard({ call, approval, question }: { call: ToolCall; approval?: ApprovalRequest; question?: QuestionRequest }): ReactElement {
   const [open, setOpen] = useState(false);
   const label = call.summary ?? fallbackLabel(call);
@@ -121,6 +140,7 @@ export function ToolCard({ call, approval, question }: { call: ToolCall; approva
         <StatusMark status={call.status} />
         <Icon name="chevron" size={14} className={`tool-chevron ${open ? 'open' : ''}`} />
       </button>
+      {call.name === 'create_file' && call.status === 'done' && call.result && <CreatedFile result={call.result} />}
       {approval && <ApprovalBox request={approval} />}
       {question && <QuestionBox request={question} />}
       {open && (

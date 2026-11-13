@@ -11,7 +11,7 @@ import { Icon } from '../Icon';
 export type CustomizeTab = 'skills' | 'connectors' | 'plugins' | 'tools';
 
 const TABS: { id: CustomizeTab; label: string; icon: IconName; hint: string }[] = [
-  { id: 'skills', label: 'Skills', icon: 'book', hint: 'How Maitre does your tasks' },
+  { id: 'skills', label: 'Skills', icon: 'book', hint: 'How Maitre does tasks' },
   { id: 'connectors', label: 'Connectors', icon: 'plug', hint: 'Apps and MCP servers' },
   { id: 'plugins', label: 'Plugins', icon: 'puzzle', hint: 'Bundles and marketplaces' },
   { id: 'tools', label: 'Tools', icon: 'wrench', hint: 'What the agent may use' },

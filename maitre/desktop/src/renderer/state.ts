@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AccountStatus, ApprovalRequest, Attachment, ConnectorStatus, Memory, QuestionRequest, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, SkillInfo, MaitreApi } from '../shared/types';
+import type { AccountStatus, ApprovalRequest, Attachment, ConnectorStatus, Memory, QuestionRequest, Conversation, ConversationSummary, Message, Mode, ModelStatus, ProcessInfo, Settings, SkillInfo, MaitreApi, WaitState } from '../shared/types';
 
 declare global {
   interface Window {
@@ -47,13 +47,14 @@ export interface AppState {
   memories: Memory[];
   /** Skills and commands the user can run with `/` (enabled ones, including the open Work task's project skills). */
   skills: SkillInfo[];
-  waiting: Map<string, 'compacting' | 'model'>;
+  waiting: Map<string, WaitState>;
   signOut(): Promise<void>;
   setMode(mode: Mode): void;
   open(id: string): Promise<void>;
   newChat(mode?: Mode): Promise<void>;
   send(text: string, attachments?: Attachment[]): Promise<void>;
   stop(): void;
+  retry(): void;
   remove(id: string): Promise<void>;
   rename(id: string, title: string): Promise<void>;
   changeWorkDir(): Promise<void>;
@@ -81,7 +82,7 @@ export function useAppState(): AppState {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [skillsVersion, setSkillsVersion] = useState(0);
-  const [waiting, setWaiting] = useState<Map<string, 'compacting' | 'model'>>(new Map());
+  const [waiting, setWaiting] = useState<Map<string, WaitState>>(new Map());
 
   const refreshStatus = useCallback(async () => {
     const [model, who, current] = await Promise.all([api().modelStatus(), api().accountStatus(), api().getSettings()]);
@@ -101,6 +102,8 @@ export function useAppState(): AppState {
     const off = api().onEvent((event) => {
       if (event.type === 'message') {
         setActive((current) => (current && current.id === event.conversationId ? { ...current, messages: upsertMessage(current.messages, event.message) } : current));
+      } else if (event.type === 'message-removed') {
+        setActive((current) => (current && current.id === event.conversationId ? { ...current, messages: current.messages.filter((message) => message.id !== event.id) } : current));
       } else if (event.type === 'conversation') {
         setConversations((list) => upsertSummary(list, event.summary));
         setActive((current) => (current && current.id === event.summary.id ? { ...current, ...event.summary } : current));
@@ -133,7 +136,7 @@ export function useAppState(): AppState {
       } else if (event.type === 'waiting') {
         setWaiting((map) => {
           const next = new Map(map);
-          if (event.phase) next.set(event.conversationId, event.phase);
+          if (event.phase) next.set(event.conversationId, { phase: event.phase, tokens: event.tokens, afterTools: event.afterTools });
           else next.delete(event.conversationId);
           return next;
         });
@@ -196,6 +199,10 @@ export function useAppState(): AppState {
     if (active) api().stop(active.id);
   }, [active]);
 
+  const retry = useCallback(() => {
+    if (active) api().retry(active.id);
+  }, [active]);
+
   const remove = useCallback(async (id: string) => {
     await api().deleteConversation(id);
     setConversations((list) => list.filter((entry) => entry.id !== id));
@@ -240,5 +247,5 @@ export function useAppState(): AppState {
 
   const visible = useMemo(() => conversations.filter((entry) => entry.mode === mode && entry.title !== 'New chat'), [conversations, mode]);
 
-  return { mode, conversations: visible, active, running, approvals, questions, processes, settings, status, account, connectors, memories, skills, waiting, signOut, setMode, open, newChat, send, stop, remove, rename, changeWorkDir, pendingFolder, chooseFolder, clearFolder, saveSettings, refreshStatus };
+  return { mode, conversations: visible, active, running, approvals, questions, processes, settings, status, account, connectors, memories, skills, waiting, signOut, setMode, open, newChat, send, stop, retry, remove, rename, changeWorkDir, pendingFolder, chooseFolder, clearFolder, saveSettings, refreshStatus };
 }

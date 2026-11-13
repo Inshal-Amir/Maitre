@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getDocumentProxy } from 'unpdf';
 import { startMockModel } from './mock-model.mjs';
 import { makePdf } from './fixtures/make-pdf.mjs';
 
@@ -88,6 +89,14 @@ try {
   check('chat mode sends only chat tools', chatTools.includes('web_search') && !chatTools.includes('run_command'), chatTools.join(','));
   check('chat appears in history', (await page.locator('.history .row-title').first().innerText()) === 'hello there');
   await page.screenshot({ path: path.join(evidence, '02-chat-reply.png') });
+
+  await page.click('.new-chat');
+  await send(page, 'flaky reply please');
+  await page.locator('.step-error button:has-text("Retry")').waitFor({ timeout: 15_000 });
+  await page.screenshot({ path: path.join(evidence, '19-retry.png') });
+  await page.click('.step-error button:has-text("Retry")');
+  await lastAssistant(page).locator('.markdown:has-text("flaky reply please")').waitFor({ timeout: 15_000 });
+  check('Retry runs a failed turn again', (await page.locator('.step-error').count()) === 0);
 
   await page.click('.new-chat');
   await send(page, 'search web for docs');
@@ -192,6 +201,19 @@ try {
   await page.click('.attachment.folder .attachment-remove');
   await page.waitForFunction(() => !document.querySelector('.attachment.folder'));
   check('removing the folder chip goes back to the default folder', !(await page.innerText('.topbar')).includes(path.basename(picked)));
+
+  await send(page, 'make a pdf report of my week');
+  await lastAssistant(page).locator('.created-file').waitFor({ timeout: 30_000 });
+  const createdName = await lastAssistant(page).locator('.created-text b').innerText();
+  const createdPath = path.join(workDir, createdName);
+  check('create_file makes a real PDF and shows it as a card', createdName === 'Weekly Report.pdf' && fs.readFileSync(createdPath).subarray(0, 5).toString() === '%PDF-', createdPath);
+  await page.screenshot({ path: path.join(evidence, '20-created-file.png') });
+  await send(page, 'make an infographic pdf of my inbox');
+  await lastAssistant(page).locator('.created-file').waitFor({ timeout: 30_000 });
+  const designed = path.join(workDir, 'Inbox Infographic.pdf');
+  const designedPdf = fs.existsSync(designed) ? fs.readFileSync(designed) : Buffer.alloc(0);
+  const designedPages = designedPdf.length ? (await getDocumentProxy(new Uint8Array(designedPdf))).numPages : 0;
+  check('a designed HTML page with SVG shapes is printed to a 2-page PDF', designedPdf.subarray(0, 5).toString() === '%PDF-' && designedPages === 2, `${designedPages} pages`);
 
   const pdf = makePdf(path.join(workDir, 'report.pdf'), ['Quarterly report for Maitre', 'Revenue grew 40 percent']);
   await app.evaluate(({ dialog }, file) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] }); }, pdf);

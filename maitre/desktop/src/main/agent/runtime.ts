@@ -9,11 +9,11 @@ import { Questions } from './questions';
 import { projectMemory } from './project';
 import { toolsFor, schemasFor, toSchema } from '../tools';
 import { ToolError } from '../tools/types';
-import { buildMessages } from './context';
+import { buildMessages, requestTokens, withContext } from './context';
 import { compactIfNeeded } from './compact';
 import { resolveInvocation, skillsPrompt } from '../skills';
 import { summarize } from '../store';
-import { systemPrompt } from './prompts';
+import { systemPrompt, turnContext } from './prompts';
 import { ApiError, complete } from '../llm';
 
 const MAX_STEPS = { chat: 8, work: 60 } as const;
@@ -51,11 +51,13 @@ function describeError(error: Error): string {
     if (error.status === 401) return 'The Maitre API rejected the key (401). Check the API key in Settings.';
     if (error.status === 402) return 'Your account is out of credits (402). Ask the Maitre admin to add credits.';
     if (error.status === 429) return 'The model server is busy (429). Try again in a moment.';
+    if ((error.status === 502 || error.status === 503) && error.detail) return `The Maitre server is up, but the model is not answering (${error.detail.replace(/\.+$/, '')}). It may be restarting: press Retry in a minute.`;
     if (error.status === 530 || error.status === 502 || error.status === 503) return 'The Maitre server is offline right now. Try again later.';
     if (error.status === 524 || error.status === 504) return 'The model took too long to start answering (it may be busy with another request or restarting). Try again in a minute.';
     return `Model API error: ${error.message}`;
   }
   if (error.name === 'AbortError') return 'Stopped.';
+  if (error instanceof TypeError && error.message === 'terminated') return 'The connection to the model dropped in the middle of the reply (the server may have restarted). Press Retry to carry on.';
   if (error instanceof TypeError) return `Could not reach the model API (${error.message}). Check your internet connection and the API address in Settings.`;
   return error.message;
 }
@@ -110,6 +112,25 @@ export class Runtime {
     else this.pendingEmit.set(key, setTimeout(flush, wait));
   }
 
+  /**
+   * Runs a failed or stopped turn again from where it broke off. The broken step is dropped (its half-written reply and
+   * cancelled tool calls never reach the model); a step whose tools already ran is kept and only loses its error.
+   */
+  async retry(conversation: Conversation): Promise<void> {
+    if (this.runs.has(conversation.id)) throw new Error('This chat is still working. Stop it or wait for it to finish.');
+    const last = conversation.messages[conversation.messages.length - 1];
+    if (last?.role !== 'assistant' || !last.error) return;
+    if (last.toolCalls.some((call) => call.status === 'done' || call.status === 'error')) {
+      delete last.error;
+      this.emitMessage(conversation, last, true);
+    } else {
+      conversation.messages.pop();
+      this.deps.emit({ type: 'message-removed', conversationId: conversation.id, id: last.id });
+    }
+    this.deps.save(conversation);
+    await this.run(conversation);
+  }
+
   async send(conversation: Conversation, text: string, attachments: Attachment[] = []): Promise<void> {
     if (this.runs.has(conversation.id)) throw new Error('This chat is still working. Stop it or wait for it to finish.');
     const skill = resolveInvocation(text, conversation.mode === 'work' ? this.workDir(conversation) : undefined);
@@ -119,7 +140,10 @@ export class Runtime {
     this.deps.save(conversation);
     this.emitMessage(conversation, user, true);
     this.deps.emit({ type: 'conversation', summary: summarize(conversation) });
+    await this.run(conversation);
+  }
 
+  private async run(conversation: Conversation): Promise<void> {
     const controller = new AbortController();
     this.runs.set(conversation.id, controller);
     this.deps.emit({ type: 'run-state', conversationId: conversation.id, running: true });
@@ -155,23 +179,23 @@ export class Runtime {
       const chosen = conversation.mode === 'work' && conversation.cwdChosen
         ? `The user chose the working folder for this task: ${cwd}. Work there: do not ask where to create the project. For a new project, create a subfolder inside it if that fits better, and call set_project with this folder or that subfolder before writing files.`
         : '';
-      const memory = [chosen, conversation.mode === 'work' ? projectMemory(cwd, conversation.plan) : ''].filter(Boolean).join('\n\n');
+      const project = conversation.mode === 'work' ? projectMemory(cwd, conversation.plan) : '';
       const skills = skillsPrompt(conversation.mode === 'work' ? cwd : undefined);
-      const system = systemPrompt(conversation.mode, cwd, this.deps.connectedApps?.() ?? [], memory, settings.defaultWorkDir, skills);
+      const system = systemPrompt(conversation.mode, cwd, this.deps.connectedApps?.() ?? [], chosen, settings.defaultWorkDir, skills);
       await this.compact(conversation, message, settings, apiKey, system, schemas, signal);
       if (signal.aborted) {
         this.finishWithError(conversation, message, 'Stopped.');
         return;
       }
-      const request = buildMessages(system, conversation.messages.slice(0, -1), schemas, settings.contextTokens, settings.maxOutputTokens, conversation.summary, conversation.mode);
-      const waiting = (phase: 'model' | null): void => this.deps.emit({ type: 'waiting', conversationId: conversation.id, phase });
+      const request = withContext(buildMessages(system, conversation.messages.slice(0, -1), schemas, settings.contextTokens, settings.maxOutputTokens, conversation.summary, conversation.mode), turnContext(project));
       let first = true;
       const arrived = (): void => {
         if (!first) return;
         first = false;
-        waiting(null);
+        this.deps.emit({ type: 'waiting', conversationId: conversation.id, phase: null });
       };
-      waiting('model');
+      const afterTools = request[request.length - 1]?.role === 'tool';
+      this.deps.emit({ type: 'waiting', conversationId: conversation.id, phase: 'model', tokens: requestTokens(request, schemas), afterTools });
       let result;
       try {
         result = await complete(

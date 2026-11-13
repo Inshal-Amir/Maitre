@@ -118,8 +118,11 @@ export function Settings({ settings, status, account, connectors, memories, onSi
               <input type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder={settings.hasApiKey ? 'Saved (paste a new key to replace it)' : 'sk-…'} autoComplete="off" />
             </label>
             <div className="field-note">
-              {status && <span className={`dot ${status.state}`} />} {status?.detail ?? ''}. Create keys at{' '}
-              <a href="https://maitre.menthiq.com" onClick={(event) => { event.preventDefault(); api().openExternal('https://maitre.menthiq.com'); }}>maitre.menthiq.com</a>.
+              {status && <span className={`dot ${status.state}`} />}
+              <span>
+                {status?.detail ? `${status.detail}. ` : ''}Create keys at{' '}
+                <a href="https://maitre.menthiq.com" onClick={(event) => { event.preventDefault(); api().openExternal('https://maitre.menthiq.com'); }}>maitre.menthiq.com</a>.
+              </span>
             </div>
             <div className="grid2">
               <label>

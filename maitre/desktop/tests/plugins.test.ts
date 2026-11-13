@@ -121,6 +121,16 @@ describe('plugins', () => {
     expect(server()).toBeUndefined();
   });
 
+  it('reads a single-skill plugin whose SKILL.md sits next to its plugin.json', async () => {
+    const root = write(fs.mkdtempSync(path.join(os.tmpdir(), 'root-skill-')), {
+      '.claude-plugin/plugin.json': '{"name":"pdf-maker","description":"Makes PDFs"}',
+      'SKILL.md': '---\nname: pdf-maker\ndescription: Turns markdown into a PDF.\n---\nUse pandoc.',
+    });
+    const result = await plugins.inspect(root);
+    if (result.kind !== 'plugin') throw new Error(`expected a plugin, got ${result.kind}`);
+    expect(result.preview.skills).toEqual(['pdf-maker']);
+  });
+
   it('rejects a plugin that only has parts Maitre does not run', async () => {
     const root = write(fs.mkdtempSync(path.join(os.tmpdir(), 'hooks-only-')), { '.claude-plugin/plugin.json': '{"name":"hooky"}', 'hooks/hooks.json': '{}', 'agents/a.md': 'x' });
     await expect(plugins.inspect(root)).rejects.toThrow(/Nothing Maitre can use.*agents, hooks/);

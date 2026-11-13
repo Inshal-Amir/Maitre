@@ -86,6 +86,28 @@ describe('context budget', () => {
     const ids = new Set(built.flatMap((m) => (m.role === 'assistant' ? m.tool_calls?.map((c) => c.id) ?? [] : [])));
     for (const m of built) if (m.role === 'tool') expect(ids.has(m.tool_call_id)).toBe(true);
   });
+
+  it('drops tool calls that never ran from a broken step and sends cut-off arguments as {}', () => {
+    const messages = [
+      { id: 'u1', role: 'user' as const, content: 'make a pdf report', createdAt: 0 },
+      {
+        id: 'a1', role: 'assistant' as const, content: 'Writing it now.', reasoning: '', createdAt: 0, error: 'terminated',
+        toolCalls: [
+          { id: 't1', name: 'google_drive_create_file', arguments: '{"name":"Weekly report","content":"# Week', status: 'cancelled' as const },
+          { id: 't2', name: 'read_file', arguments: '{"path":"a.txt"}', status: 'done' as const, result: 'ok', startedAt: 1, endedAt: 2 },
+          { id: 't3', name: 'run_command', arguments: '{"command":"sle', status: 'cancelled' as const, startedAt: 3 },
+        ],
+      },
+      { id: 'u2', role: 'user' as const, content: 'retry', createdAt: 0 },
+    ];
+    const built = buildMessages('system', messages, [], 30_000, 2000);
+    const step = built.find((m) => m.role === 'assistant');
+    if (step?.role !== 'assistant') throw new Error('expected the assistant step');
+    expect(step.tool_calls?.map((call) => [call.id, call.function.arguments])).toEqual([['t2', '{"path":"a.txt"}'], ['t3', '{}']]);
+    expect(step.content).toContain('cut off');
+    expect(built.filter((m) => m.role === 'tool').map((m) => (m.role === 'tool' ? m.tool_call_id : ''))).toEqual(['t2', 't3']);
+    for (const call of step.tool_calls ?? []) expect(() => JSON.parse(call.function.arguments)).not.toThrow();
+  });
 });
 
 describe('html to text', () => {

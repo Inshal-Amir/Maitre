@@ -62,6 +62,28 @@ describe('agent runtime', () => {
     expect(events.some((event) => event.type === 'run-state' && !event.running)).toBe(true);
   });
 
+  it('retries a failed step from where the turn broke off', async () => {
+    await withScript([
+      { tool_calls: [{ name: 'write_file', arguments: JSON.stringify({ path: 'note.txt', content: 'kept\n' }) }] },
+      { status: 400, error: 'model went away' },
+      { content: 'Finished after retry.' },
+    ]);
+    settings.apiBase = mock.url;
+    const c = conversation();
+    const runtime = makeRuntime();
+    await runtime.send(c, 'write a note');
+    const failed = assistantSteps(c)[1];
+    expect(failed.error).toContain('model went away');
+
+    await runtime.retry(c);
+    const steps = assistantSteps(c);
+    expect(steps.map((step) => step.content)).toEqual(['', 'Finished after retry.']);
+    expect(steps.some((step) => step.error)).toBe(false);
+    expect(events).toContainEqual({ type: 'message-removed', conversationId: c.id, id: failed.id });
+    expect(toolResults(mock.requests[2]).join('\n')).toContain('note.txt');
+    expect(fs.readFileSync(path.join(workDir, 'note.txt'), 'utf8')).toBe('kept\n');
+  });
+
   it('asks before a risky command and tells the model when it is denied', async () => {
     fs.mkdirSync(path.join(workDir, 'keep'));
     await withScript([

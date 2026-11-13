@@ -45,7 +45,11 @@ export async function startMockGoogle(port) {
       if (route === 'GET /drive/v3/files') return json(res, 200, { files: [{ id: 'f1', name: 'Plan', mimeType: 'application/vnd.google-apps.document', modifiedTime: '2026-09-20T00:00:00Z', webViewLink: 'https://docs.google.com/f1' }] });
       if (route === 'GET /drive/v3/files/f1') return json(res, 200, { id: 'f1', name: 'Plan', mimeType: 'application/vnd.google-apps.document' });
       if (route === 'GET /drive/v3/files/f1/export') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('Step 1: build the app'); }
-      if (route === 'POST /upload/drive/v3/files') return json(res, 200, { id: 'f2', name: 'notes.txt', webViewLink: 'https://drive.google.com/f2' });
+      if (route === 'POST /upload/drive/v3/files') {
+        const meta = JSON.parse(/\{.*\}/.exec(raw)?.[0] ?? '{}');
+        const isDoc = meta.mimeType === 'application/vnd.google-apps.document';
+        return json(res, 200, { id: 'f2', name: meta.name ?? 'notes.txt', webViewLink: isDoc ? 'https://docs.google.com/document/d/f2/edit' : 'https://drive.google.com/f2' });
+      }
       if (route === 'POST /v1/documents') return json(res, 200, { documentId: 'doc1', title: JSON.parse(raw).title });
       if (route === 'POST /v1/documents/doc1:batchUpdate') return json(res, 200, {});
       if (route === 'GET /v4/spreadsheets/s1/values/Sheet1!A1:B2') return json(res, 200, { range: 'Sheet1!A1:B2', values: [['name', 'score'], ['Ali', '9']] });

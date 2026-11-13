@@ -188,7 +188,7 @@ describe('skills in the agent loop', () => {
     expect(first.messages[0].content).toContain('- haiku: Writes a haiku about a topic.');
     expect(first.messages[1].content).toContain('<skill name="haiku">');
     expect(first.messages[1].content).toContain('Write 5-7-5 syllables about autumn rain.');
-    expect(first.messages[1].content).toMatch(/<\/skill>\n\n\/haiku autumn rain$/);
+    expect(first.messages[1].content).toMatch(/<\/skill>\n\n\/haiku autumn rain\n\n<context>/);
     expect(first.tools?.map((tool) => tool.function.name)).not.toContain('web_search');
     expect(conversation.messages[0]).toMatchObject({ role: 'user', content: '/haiku autumn rain', skill: { name: 'haiku', arguments: 'autumn rain' } });
 

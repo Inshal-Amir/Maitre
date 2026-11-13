@@ -3,21 +3,30 @@ import http from 'node:http';
 
 const chunk = (delta, finish = null) => ({ id: 'mock', object: 'chat.completion.chunk', choices: [{ index: 0, delta, finish_reason: finish }] });
 
+/** The user's own words: the app appends a <context> block (clock, Work plan) to the newest message. */
+const withoutContext = (content) => (typeof content === 'string' ? content.replace(/\n\n<context>[\s\S]*$/, '') : content);
+
 function lastUser(messages) {
-  for (let i = messages.length - 1; i >= 0; i--) if (messages[i].role === 'user') return messages[i].content;
+  for (let i = messages.length - 1; i >= 0; i--) if (messages[i].role === 'user') return withoutContext(messages[i].content);
   return '';
 }
+
+let flakyFailed = false;
 
 /** Default scenario used by the Electron end-to-end test. */
 export function scenario(body) {
   const messages = body.messages;
   const last = messages[messages.length - 1];
   const task = lastUser(messages);
-  if (last.role === 'tool' && /build a website/i.test(task) && /^Q: /.test(last.content)) {
+  if (/flaky/i.test(task) && !flakyFailed) {
+    flakyFailed = true;
+    return { status: 400, error: 'model went away' };
+  }
+  if (last.role === 'tool' && /build a website/i.test(task) && /^Q: /.test(withoutContext(last.content))) {
     return { tool_calls: [{ name: 'update_plan', arguments: JSON.stringify({ goal: 'A portfolio website', steps: [{ title: 'Scaffold the project', status: 'in_progress' }, { title: 'Build the pages', status: 'pending' }, { title: 'Check it in the browser', status: 'pending' }] }) }] };
   }
   if (last.role === 'tool') {
-    const results = messages.filter((m) => m.role === 'tool').map((m) => m.content);
+    const results = messages.filter((m) => m.role === 'tool').map((m) => withoutContext(m.content));
     return { content: `Done. Tool said: ${results[results.length - 1].split('\n')[0]}` };
   }
   if (/create hello/i.test(task)) {
@@ -37,6 +46,13 @@ export function scenario(body) {
   }
   if (/github/i.test(task)) {
     return { tool_calls: [{ name: 'github_search', arguments: JSON.stringify({ query: 'fastapi example', max_results: 3 }) }] };
+  }
+  if (/infographic pdf/i.test(task)) {
+    const page = '<!doctype html><html><head><style>@page{size:A4;margin:0}body{margin:0;font-family:Helvetica}section{height:297mm;padding:20mm;break-after:page}h1{color:#1f4a3d}</style></head><body><section><h1>Inbox at a glance</h1><svg width="400" height="200"><rect x="10" y="20" width="260" height="40" fill="#1f4a3d"/><rect x="10" y="80" width="180" height="40" fill="#a9541f"/><circle cx="340" cy="100" r="50" fill="#e9a273"/></svg><img src="https://example.com/tracker.png"></section><section><h1>Actions</h1></section></body></html>';
+    return { tool_calls: [{ name: 'create_file', arguments: JSON.stringify({ format: 'pdf', title: 'Inbox Infographic', source: 'html', content: page }) }] };
+  }
+  if (/pdf report/i.test(task)) {
+    return { tool_calls: [{ name: 'create_file', arguments: JSON.stringify({ format: 'pdf', title: 'Weekly Report', content: '# Weekly Report\n\n## Summary\n\n- **33** messages\n\n| Category | Count |\n|---|---|\n| Classroom | 13 |' }) }] };
   }
   if (/list files/i.test(task)) {
     return { tool_calls: [{ name: 'run_command', arguments: JSON.stringify({ command: 'ls -la' }) }] };

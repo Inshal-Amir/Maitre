@@ -43,6 +43,7 @@ export const POLICY_MODES: { value: ApprovalPolicy; label: string; icon: 'shield
   { value: 'never', label: 'Full auto', icon: 'spark', text: 'Never asks. Use it only for tasks you trust completely.', hint: 'Maitre acts without asking.' },
 ];
 
+const MAX_INPUT_HEIGHT = 260;
 const policyMode = (policy: ApprovalPolicy) => POLICY_MODES.find((entry) => entry.value === policy) ?? POLICY_MODES[1];
 
 function PolicyPicker({ policy, onPolicy }: { policy: ApprovalPolicy; onPolicy(policy: ApprovalPolicy): void }): ReactElement {
@@ -114,6 +115,10 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
   onStop(): void;
   seed: { text: string; nonce: number } | null;
 }): ReactElement {
+  const requestedPolicy = useRef(policy);
+  useEffect(() => {
+    requestedPolicy.current = policy;
+  }, [policy]);
   const [text, setText] = useState('');
   const [files, setFiles] = useState<Attachment[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -162,7 +167,8 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
     const element = area.current;
     if (!element) return;
     element.style.height = 'auto';
-    element.style.height = `${Math.min(element.scrollHeight, 260)}px`;
+    element.style.height = `${Math.min(element.scrollHeight, MAX_INPUT_HEIGHT)}px`;
+    element.style.overflowY = element.scrollHeight > MAX_INPUT_HEIGHT ? 'auto' : 'hidden';
   }, [text]);
 
   useEffect(() => {
@@ -210,8 +216,9 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
     }
     if (event.key === 'Tab' && event.shiftKey) {
       event.preventDefault();
-      const index = POLICY_MODES.findIndex((entry) => entry.value === policy);
-      onPolicy(POLICY_MODES[(index + 1) % POLICY_MODES.length].value);
+      const index = POLICY_MODES.findIndex((entry) => entry.value === requestedPolicy.current);
+      requestedPolicy.current = POLICY_MODES[(index + 1) % POLICY_MODES.length].value;
+      onPolicy(requestedPolicy.current);
       return;
     }
     if (menuOpen && event.key === 'Escape') {
@@ -258,15 +265,6 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
       )}
       <div className={`composer ${mode}`} onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
         {menuOpen && <SlashMenu items={menu} active={Math.min(menuIndex, Math.max(0, menu.length - 1))} onPick={pick} onHover={setMenuIndex} onManage={onManageSkills} />}
-        <button type="button" className="attach" onClick={() => attach([])} aria-label="Attach files" title="Attach images, PDF, Word or text files" disabled={running}>
-          <Icon name="clip" size={18} />
-        </button>
-        {mode === 'work' && (
-          <button type="button" className={`attach ${folder?.chosen ? 'on' : ''}`} onClick={onChooseFolder} aria-label="Choose working folder"
-                  title={folder ? `Working folder: ${folder.path}\nClick to choose another folder` : 'Choose the folder to work in'}>
-            <Icon name="folder" size={18} />
-          </button>
-        )}
         <textarea
           ref={area}
           rows={1}
@@ -281,6 +279,18 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
           onPaste={onPaste}
           aria-label="Message"
         />
+        <div className="composer-bar">
+          <button type="button" className="attach" onClick={() => attach([])} aria-label="Attach files" title="Attach images, PDF, Word or text files" disabled={running}>
+            <Icon name="clip" size={18} />
+          </button>
+          {mode === 'work' && (
+            <button type="button" className={`attach ${folder?.chosen ? 'on' : ''}`} onClick={onChooseFolder} aria-label="Choose working folder"
+                    title={folder ? `Working folder: ${folder.path}\nClick to choose another folder` : 'Choose the folder to work in'}>
+              <Icon name="folder" size={18} />
+            </button>
+          )}
+          <PolicyPicker policy={policy} onPolicy={onPolicy} />
+          <span className="composer-spacer" />
         {running ? (
           <button type="button" className="send stop" onClick={onStop} aria-label="Stop">
             <Icon name="stop" size={14} />
@@ -290,12 +300,10 @@ export function Composer({ mode, running, disabled, onSend, onStop, seed, droppe
             <Icon name="send" size={17} />
           </button>
         )}
-      </div>
-      <div className="composer-foot">
-        <PolicyPicker policy={policy} onPolicy={onPolicy} />
-        <div className="composer-hint">
-          {mode === 'work' ? `Work mode can change files and run programs on this computer. ${policyMode(policy).hint}` : 'Maitre can make mistakes. Check important information.'} Drop or paste images, PDF, Word or text files here. Type / for skills.
         </div>
+      </div>
+      <div className="composer-hint">
+        {mode === 'work' ? policyMode(policy).hint : 'Maitre can make mistakes.'} Drop files to attach · Type / for skills
       </div>
     </div>
   );

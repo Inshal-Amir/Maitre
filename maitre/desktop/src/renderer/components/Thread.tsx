@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import type { ApprovalRequest, AssistantMessage, Message, Plan, QuestionRequest } from '../../shared/types';
+import type { ApprovalRequest, AssistantMessage, Message, Plan, QuestionRequest, WaitState } from '../../shared/types';
 import { PlanPanel } from './Questions';
 import { ToolCard } from './ToolCard';
 import { Markdown } from './Markdown';
@@ -52,25 +52,39 @@ function useElapsed(active: boolean): number {
   return seconds;
 }
 
-function Waiting({ phase }: { phase: 'compacting' | 'model' }): ReactElement {
+const formatTokens = (tokens: number): string => (tokens < 1000 ? `${tokens}` : `${Math.round(tokens / 1000)}k`);
+
+/** How fast the Maitre server reads a prompt it has not seen before (measured on the DGX Spark). */
+const READ_TOKENS_PER_SECOND = 350;
+
+const formatDuration = (seconds: number): string => (seconds < 90 ? `${Math.round(seconds)}s` : `${Math.round(seconds / 60)} min`);
+
+function waitingText({ phase, tokens, afterTools }: WaitState, seconds: number): string {
+  if (phase === 'compacting') return 'Summarizing earlier messages so the chat stays fast…';
+  const size = tokens ? ` (~${formatTokens(tokens)} tokens)` : '';
+  const expected = (tokens ?? 0) / READ_TOKENS_PER_SECOND;
+  if (seconds >= Math.max(120, expected * 1.5 + 60)) return `No reply after ${formatDuration(seconds)}. The server may be busy with another request or restarting. You can press Stop and try again.`;
+  if (seconds >= 25 && expected >= 60) return `Reading a long conversation${size}: ${formatDuration(seconds)} of about ${formatDuration(expected)}. The first reply after a pause takes longest; the next ones reuse what was read.`;
+  if (seconds >= 25) return `Still reading the conversation${size}, ${seconds}s. Long chats take longer before the first word.`;
+  return afterTools ? `Reading the tool results and deciding the next step${size}…` : `Reading your message${size}…`;
+}
+
+function Waiting({ wait }: { wait: WaitState }): ReactElement {
   const seconds = useElapsed(true);
-  const text = phase === 'compacting'
-    ? 'Summarizing earlier messages so the chat stays fast…'
-    : seconds < 20 ? 'Waiting for Maitre…' : `Still waiting for the model (${seconds}s). It may be busy with another request.`;
   return (
     <div className="waiting" role="status">
       <div className="typing"><span /><span /><span /></div>
-      <span>{text}</span>
+      <span>{waitingText(wait, seconds)}</span>
     </div>
   );
 }
 
-function Step({ step, approvals, questions, waiting }: { step: AssistantMessage; approvals: Map<string, ApprovalRequest>; questions: Map<string, QuestionRequest>; waiting: 'compacting' | 'model' | undefined }): ReactElement {
+function Step({ step, approvals, questions, waiting, onRetry }: { step: AssistantMessage; approvals: Map<string, ApprovalRequest>; questions: Map<string, QuestionRequest>; waiting: WaitState | undefined; onRetry?: () => void }): ReactElement {
   const thinking = step.streaming && !step.content && !step.toolCalls.length;
   return (
     <div className="step">
       {step.reasoning && <Reasoning text={step.reasoning} live={Boolean(thinking)} />}
-      {!step.reasoning && thinking && (waiting ? <Waiting phase={waiting} /> : <div className="typing"><span /><span /><span /></div>)}
+      {!step.reasoning && thinking && (waiting ? <Waiting wait={waiting} /> : <div className="typing"><span /><span /><span /></div>)}
       {step.content && (
         <div className={step.streaming ? 'streaming' : undefined}>
           <Markdown text={step.content} />
@@ -81,22 +95,30 @@ function Step({ step, approvals, questions, waiting }: { step: AssistantMessage;
           {step.toolCalls.map((call) => <ToolCard key={call.id} call={call} approval={approvals.get(call.id)} question={questions.get(call.id)} />)}
         </div>
       )}
-      {step.error && <div className="step-error" role="alert">{step.error}</div>}
+      {step.error && (
+        <div className="step-error" role="alert">
+          <span>{step.error}</span>
+          {onRetry && <button type="button" className="btn small" onClick={onRetry}><Icon name="refresh" size={14} /> Retry</button>}
+        </div>
+      )}
     </div>
   );
 }
 
-export function Thread({ messages, approvals, questions, plan, waiting, compactedAt }: {
+export function Thread({ messages, approvals, questions, plan, waiting, onRetry, compactedAt }: {
   messages: Message[];
   approvals: ApprovalRequest[];
   questions: QuestionRequest[];
   plan?: Plan;
-  waiting?: 'compacting' | 'model';
+  waiting?: WaitState;
+  /** Set while the chat is idle: offered on the error of its last step. */
+  onRetry?: () => void;
   compactedAt?: number;
 }): ReactElement {
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const turns = useMemo(() => toTurns(messages), [messages]);
+  const lastId = messages[messages.length - 1]?.id;
   const approvalByCall = useMemo(() => new Map(approvals.map((request) => [request.toolCallId, request])), [approvals]);
   const questionByCall = useMemo(() => new Map(questions.map((request) => [request.toolCallId, request])), [questions]);
 
@@ -145,7 +167,7 @@ export function Thread({ messages, approvals, questions, plan, waiting, compacte
               <div className="turn assistant">
                 <div className="avatar" aria-hidden="true" />
                 <div className="steps">
-                  {turn.steps.map((step, index) => <Step key={step.id} step={step} approvals={approvalByCall} questions={questionByCall} waiting={index === turn.steps.length - 1 ? waiting : undefined} />)}
+                  {turn.steps.map((step, index) => <Step key={step.id} step={step} approvals={approvalByCall} questions={questionByCall} waiting={index === turn.steps.length - 1 ? waiting : undefined} onRetry={step.id === lastId ? onRetry : undefined} />)}
                 </div>
               </div>
             )}

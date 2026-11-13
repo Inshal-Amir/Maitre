@@ -4,6 +4,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { GoogleService } from '../../shared/types';
 import { decodeEntities, htmlToText } from '../tools/web';
 import { clip } from '../tools/types';
+import { markdownHtml } from '../output/html';
 
 const API = process.env.MAITRE_GOOGLE_API_BASE;
 const BASE = {
@@ -164,6 +165,20 @@ function registerCalendar(server: McpServer, token: Token): void {
 
 interface DriveFile { id: string; name: string; mimeType: string; modifiedTime?: string; webViewLink?: string; size?: string }
 
+/** Creates a Google Doc from Markdown through Drive's HTML import, so headings, lists, bold, links and tables keep their formatting. */
+async function uploadGoogleDoc(token: Token, name: string, markdown: string, folderId?: string): Promise<DriveFile> {
+  const boundary = `maitre${Date.now()}`;
+  const metadata = { name, mimeType: 'application/vnd.google-apps.document', ...(folderId ? { parents: [folderId] } : {}) };
+  const html = `<!doctype html><html><head><meta charset="utf-8"></head><body>${markdownHtml(markdown)}</body></html>`;
+  const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n${html}\r\n--${boundary}--`;
+  return call<DriveFile>(token, `${BASE.drive}/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink`, {
+    method: 'POST', body, headers: { 'content-type': `multipart/related; boundary=${boundary}` },
+  });
+}
+
+/** Readable plain text for a Doc written without Drive access: Markdown marks are removed instead of shown. */
+const markdownPlain = (markdown: string): string => htmlToText(markdownHtml(markdown)).text.replace(/^#{1,6}\s+/gm, '');
+
 const EXPORTS: Record<string, string> = {
   'application/vnd.google-apps.document': 'text/plain',
   'application/vnd.google-apps.spreadsheet': 'text/csv',
@@ -196,12 +211,16 @@ function registerDrive(server: McpServer, token: Token): void {
     return `${meta.name} is a ${meta.mimeType} file (${meta.size ?? '?'} bytes) and cannot be shown as text. Link: ${meta.webViewLink ?? ''}`;
   }));
   server.registerTool('drive_create_file', {
-    description: 'Create a file in Google Drive from text: kind "google_doc" converts it to a Google Doc, "text" keeps a plain file (name should include the extension).',
+    description: 'Create a file in Google Drive from text: kind "google_doc" turns Markdown into a formatted Google Doc (headings, lists, tables), "text" keeps a plain file (name should include the extension).',
     inputSchema: { name: z.string(), content: z.string(), kind: z.enum(['google_doc', 'text']).optional(), folder_id: z.string().optional() },
     annotations: { readOnlyHint: false, destructiveHint: false },
   }, ({ name, content, kind, folder_id }) => guard(async () => {
+    if (kind === 'google_doc') {
+      const doc = await uploadGoogleDoc(token, name, content, folder_id);
+      return `Created ${doc.name} (id ${doc.id})\n${doc.webViewLink ?? ''}`;
+    }
     const boundary = `maitre${Date.now()}`;
-    const metadata = { name, ...(kind === 'google_doc' ? { mimeType: 'application/vnd.google-apps.document' } : {}), ...(folder_id ? { parents: [folder_id] } : {}) };
+    const metadata = { name, ...(folder_id ? { parents: [folder_id] } : {}) };
     const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${content}\r\n--${boundary}--`;
     const file = await call<DriveFile>(token, `${BASE.drive}/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink`, {
       method: 'POST', body, headers: { 'content-type': `multipart/related; boundary=${boundary}` },
@@ -212,17 +231,21 @@ function registerDrive(server: McpServer, token: Token): void {
 
 interface Doc { documentId: string; title: string; body?: { content?: { endIndex?: number }[] } }
 
-function registerDocs(server: McpServer, token: Token): void {
+function registerDocs(server: McpServer, token: Token, services: GoogleService[]): void {
   const docs = `${BASE.docs}/v1/documents`;
   const insert = (id: string, index: number, value: string): Promise<unknown> =>
     call(token, `${docs}/${encodeURIComponent(id)}:batchUpdate`, { method: 'POST', body: JSON.stringify({ requests: [{ insertText: { location: { index }, text: value } }] }) });
   server.registerTool('docs_create', {
-    description: 'Create a Google Doc with a title and optional plain-text content. Returns the link.',
+    description: 'Create a Google Doc with a title and optional content in Markdown (headings, lists, bold, links and tables become real formatting). Returns the link.',
     inputSchema: { title: z.string(), content: z.string().optional() },
     annotations: { readOnlyHint: false, destructiveHint: false },
   }, ({ title, content }) => guard(async () => {
+    if (content && services.includes('drive')) {
+      const file = await uploadGoogleDoc(token, title, content);
+      return `Created Google Doc "${file.name}" (id ${file.id})\n${file.webViewLink ?? `https://docs.google.com/document/d/${file.id}/edit`}`;
+    }
     const doc = await call<Doc>(token, docs, { method: 'POST', body: JSON.stringify({ title }) });
-    if (content) await insert(doc.documentId, 1, content);
+    if (content) await insert(doc.documentId, 1, markdownPlain(content));
     return `Created Google Doc "${doc.title}" (id ${doc.documentId})\nhttps://docs.google.com/document/d/${doc.documentId}/edit`;
   }));
   server.registerTool('docs_append', {
@@ -268,7 +291,7 @@ function registerSheets(server: McpServer, token: Token): void {
   }));
 }
 
-const REGISTER: Record<GoogleService, (server: McpServer, token: Token) => void> = {
+const REGISTER: Record<GoogleService, (server: McpServer, token: Token, services: GoogleService[]) => void> = {
   gmail: registerGmail,
   calendar: registerCalendar,
   drive: registerDrive,
@@ -279,6 +302,6 @@ const REGISTER: Record<GoogleService, (server: McpServer, token: Token) => void>
 /** Maitre's built-in Google Workspace MCP server; runs in-process and calls the Google REST APIs with the user's token. */
 export function createGoogleServer(services: GoogleService[], token: Token): McpServer {
   const server = new McpServer({ name: 'maitre-google', version: '1.0.0' });
-  for (const service of services) REGISTER[service](server, token);
+  for (const service of services) REGISTER[service](server, token, services);
   return server;
 }

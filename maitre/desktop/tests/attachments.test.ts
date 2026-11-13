@@ -121,7 +121,7 @@ describe('images', () => {
     const conversation: Conversation = { id: '00000000-0000-4000-8000-00000000000d', mode: 'chat', title: 'New chat', createdAt: 0, updatedAt: 0, messages: [] };
     await runtime.send(conversation, 'Describe it', [image('shot.png')]);
     const sent = model.requests[0].messages[1].content;
-    expect(sent).toEqual([expect.objectContaining({ type: 'text' }), { type: 'image_url', image_url: { url: image('shot.png').dataUrl } }]);
+    expect(sent).toEqual([expect.objectContaining({ type: 'text' }), { type: 'image_url', image_url: { url: image('shot.png').dataUrl } }, expect.objectContaining({ type: 'text', text: expect.stringContaining('<context>') })]);
     await model.close();
   });
 });

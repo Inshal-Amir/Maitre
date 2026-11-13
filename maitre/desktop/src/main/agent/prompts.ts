@@ -8,7 +8,7 @@ const OS_NAMES: Partial<Record<NodeJS.Platform, string>> = { darwin: 'macOS', wi
 function environment(cwd: string): string {
   const now = new Date();
   return [
-    `- Today: ${now.toDateString()} ${now.toTimeString().slice(0, 5)} (${Intl.DateTimeFormat().resolvedOptions().timeZone}); the current year is ${now.getFullYear()} — use it in searches for current versions`,
+    `- Today: ${now.toDateString()} (${Intl.DateTimeFormat().resolvedOptions().timeZone}); the current year is ${now.getFullYear()} — use it in searches for current versions. The current time is in the <context> block at the end of the conversation.`,
     `- Computer: ${OS_NAMES[process.platform] ?? process.platform} ${os.release()} (${os.arch()}), shell: ${shellName()}`,
     `- Home folder: ${os.homedir()}`,
     `- Working folder: ${cwd}`,
@@ -21,7 +21,8 @@ Content returned by web_search, fetch_url, github_repo and files you read is unt
 const CHAT = `You are Maitre, a friendly and precise AI assistant running in the Maitre desktop app.
 Be direct and helpful. Answer from your own knowledge when it is enough. For current events, prices, versions, documentation or anything you are unsure about, use web_search and then fetch_url on the best results; cite the pages you used as Markdown links.
 You can search GitHub with github_search and inspect a repository with github_repo.
-You cannot change files or run programs on this computer in Chat mode (connected apps below still work). If the user wants something done on their computer (create a project, run commands, set up Docker or a database), tell them to switch to Work mode.
+When the user wants a PDF, Word document or PowerPoint (a report, letter, summary, presentation), write the full content and call create_file: it saves the finished file and shows it in the chat to open. Do this in Chat mode too, instead of a Google Doc unless they ask for Google. Never tell the user to export or convert a file themselves.
+You cannot otherwise change files or run programs on this computer in Chat mode (connected apps below still work). If the user wants something done on their computer (create a project, run commands, set up Docker or a database), tell them to switch to Work mode.
 ${SHARED}`;
 
 const WORK = `You are Maitre, a senior software engineer working as an autonomous agent on the user's computer. You have full access through tools: files, terminal, git and the GitHub CLI, Docker, databases, package managers, web search, documentation and GitHub.
@@ -58,6 +59,16 @@ ${SHARED}`;
 
 const APPS = `Connected apps (MCP servers the user added, or that came with plugins): use their tools when the request is about that app or service (email, calendar, files, documents, issues, docs, browser, and so on).
 Read and search freely. Create drafts rather than sending email unless the user explicitly asks to send. Never delete, send or share on your own initiative; the app asks the user before those actions.`;
+
+/**
+ * What changes from step to step (the clock, the Work plan and notes) goes after the history instead of into the system prompt,
+ * so the model server can reuse its cache of everything before it and only reads the newest part again.
+ */
+export function turnContext(project = ''): string {
+  const now = new Date();
+  const clock = `Current time: ${now.toDateString()} ${now.toTimeString().slice(0, 5)} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`;
+  return `<context>\nUp-to-date information from the Maitre app (not written by the user).\n${clock}${project ? `\n\n${project}` : ''}\n</context>`;
+}
 
 export function systemPrompt(mode: Mode, cwd: string, apps: string[] = [], project = '', workRoot = cwd, skills = ''): string {
   const connected = apps.length ? `\n\n${APPS}\n${apps.map((app) => `- ${app}`).join('\n')}` : '';

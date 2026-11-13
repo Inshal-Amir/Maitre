@@ -365,7 +365,17 @@ export type AgentEvent =
   | { type: 'skills' }
   | { type: 'plugins' }
   | { type: 'tools' }
-  | { type: 'waiting'; conversationId: string; phase: 'compacting' | 'model' | null };
+  | { type: 'message-removed'; conversationId: string; id: string }
+  | { type: 'waiting'; conversationId: string; phase: WaitPhase | null; tokens?: number; afterTools?: boolean };
+
+export type WaitPhase = 'compacting' | 'model';
+
+/** What a run is waiting on before the model's first token: the size of the request and whether it follows tool results. */
+export interface WaitState {
+  phase: WaitPhase;
+  tokens?: number;
+  afterTools?: boolean;
+}
 
 export interface MaitreApi {
   listConversations(): Promise<ConversationSummary[]>;
@@ -382,6 +392,8 @@ export interface MaitreApi {
   attachImage(name: string, dataUrl: string): Promise<AttachmentResult>;
   pathForFile(file: File): string;
   stop(id: string): Promise<void>;
+  /** Runs the last failed or stopped turn of a chat again. */
+  retry(id: string): Promise<void>;
   decide(approvalId: string, decision: ApprovalDecision): Promise<void>;
   answer(questionId: string, answers: string[]): Promise<void>;
   getSettings(): Promise<Settings>;
@@ -430,6 +442,8 @@ export interface MaitreApi {
   stopProcess(id: string): Promise<void>;
   openExternal(url: string): Promise<void>;
   revealPath(target: string): Promise<void>;
+  /** Opens a document Maitre created (PDF, Word, PowerPoint, Markdown, HTML) in its default app. */
+  openDocument(target: string): Promise<void>;
   platform: NodeJS.Platform;
   onEvent(listener: (event: AgentEvent) => void): () => void;
 }

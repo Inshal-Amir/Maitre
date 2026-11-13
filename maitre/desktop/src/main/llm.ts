@@ -73,7 +73,8 @@ interface StreamChunk {
 }
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number, readonly retryable: boolean) {
+  /** `detail` is the server's own explanation, when the answer came from Maitre rather than the network in between. */
+  constructor(message: string, readonly status: number, readonly retryable: boolean, readonly detail?: string) {
     super(message);
   }
 }
@@ -148,16 +149,15 @@ async function* sseEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<stri
 }
 
 async function errorFrom(response: Response): Promise<ApiError> {
-  let message = `HTTP ${response.status}`;
+  let detail: string | undefined;
   try {
     const body = (await response.json()) as { error?: { message?: string } | string; detail?: string };
-    const detail = typeof body.error === 'string' ? body.error : (body.error?.message ?? body.detail);
-    if (detail) message = `${message}: ${detail}`;
+    detail = typeof body.error === 'string' ? body.error : (body.error?.message ?? body.detail);
   } catch {
     /* non-JSON error body */
   }
   const retryable = response.status === 429 || response.status >= 500;
-  return new ApiError(message, response.status, retryable);
+  return new ApiError(detail ? `HTTP ${response.status}: ${detail}` : `HTTP ${response.status}`, response.status, retryable, detail);
 }
 
 function mergeToolDeltas(calls: ApiToolCall[], deltas: NonNullable<StreamDelta['tool_calls']>): void {
@@ -208,7 +208,7 @@ async function streamOnce(request: CompletionRequest, handlers: StreamHandlers):
     } catch {
       continue;
     }
-    if (chunk.error) throw new ApiError(chunk.error.message ?? 'The model stream reported an error', 502, false);
+    if (chunk.error) throw new ApiError(chunk.error.message ?? 'The model stream reported an error', 502, false, chunk.error.message ?? 'The model stream reported an error');
     if (chunk.usage) result.usage = { promptTokens: chunk.usage.prompt_tokens, completionTokens: chunk.usage.completion_tokens };
     const choice = chunk.choices?.[0];
     if (!choice) continue;

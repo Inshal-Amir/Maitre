@@ -8,11 +8,13 @@ import { memoryTools } from '../memory';
 import { fileTools } from './files';
 import { agentTools } from './agent';
 import { webTools } from './web';
+import { createFile } from './create';
 
 const GROUPS: [string, Tool[]][] = [
   ['Planning', agentTools],
   ['Skills', skillTools],
   ['Files', fileTools],
+  ['Documents', [createFile]],
   ['Terminal', commandTools],
   ['Web and GitHub', webTools],
   ['System', systemTools],

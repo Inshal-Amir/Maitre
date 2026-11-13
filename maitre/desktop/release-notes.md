@@ -1,3 +1,9 @@
+- **PDF, Word and PowerPoint (0.7.2):** ask for a report, letter or presentation and Maitre makes the file itself, in Chat and Work, and shows it in the chat with Open and Show in folder. Google Docs it creates now keep headings, bold text, lists and tables.
+- **Faster long chats (0.7.2):** history is handled like Claude Code: the server reuses what it already read, long chats get a detailed summary at 128K tokens, and broken steps no longer block a chat.
+- **Retry (0.7.2):** when a reply breaks off (the connection drops or the server restarts), press **Retry** on the error to carry on from where it stopped; finished tool steps are kept.
+- **Clearer waiting (0.7.2):** while the model reads a long chat or tool results, Maitre says what it is doing and how much it is reading, and says so plainly if the server seems busy or restarting.
+- **Plugins:** single-skill plugins (a SKILL.md next to plugin.json, as in glebis/claude-skills) now install.
+- **Tidier Customize screens (0.7.2):** buttons, search boxes and chips line up at one size, long descriptions end cleanly, and the message box footer fits on one line. Pressing Shift+Tab quickly no longer skips a mode.
 - **Approval modes (0.7.1):** pick how much Maitre asks you, right under the message box: **Ask before changes**, **Auto-edit** (asks only for risky actions) or **Full auto** (never asks). Shift+Tab switches between them.
 - **Skills, apps and plugins:** a new Customize screen (sidebar → Skills, apps and plugins). Add skills, connect apps, install plugins and switch tools on or off.
 - **Connector gallery:** 22 ready-made connectors (GitHub, Notion, Linear, Jira, Asana, Canva, Stripe, Supabase, Playwright, Chrome DevTools and more), your own MCP servers, or paste a config from Claude Desktop, Claude Code, Cursor or VS Code.

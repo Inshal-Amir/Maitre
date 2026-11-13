@@ -14,6 +14,7 @@ const api: MaitreApi = {
   attachImage: (name, dataUrl) => ipcRenderer.invoke('attachments:add-image', name, dataUrl),
   pathForFile: (file) => webUtils.getPathForFile(file),
   stop: (id) => ipcRenderer.invoke('agent:stop', id),
+  retry: (id) => ipcRenderer.invoke('agent:retry', id),
   decide: (id, decision) => ipcRenderer.invoke('agent:decide', id, decision),
   answer: (id, answers) => ipcRenderer.invoke('agent:answer', id, answers),
   getSettings: () => ipcRenderer.invoke('settings:get'),
@@ -58,6 +59,7 @@ const api: MaitreApi = {
   stopProcess: (id) => ipcRenderer.invoke('processes:stop', id),
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
   revealPath: (target) => ipcRenderer.invoke('shell:reveal', target),
+  openDocument: (target) => ipcRenderer.invoke('shell:open-document', target),
   platform: process.platform,
   onEvent(listener) {
     const wrapped = (_event: Electron.IpcRendererEvent, payload: AgentEvent): void => listener(payload);

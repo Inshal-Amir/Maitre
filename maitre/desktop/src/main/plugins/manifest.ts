@@ -150,6 +150,13 @@ function ignoredParts(root: string, manifest: RawManifest): string[] {
 
 const authorName = (author: RawManifest['author']): string | undefined => (typeof author === 'string' ? author : author?.name) || undefined;
 
+/** The `skills/` folder, or a single-skill plugin whose SKILL.md sits at its root (with or without a plugin.json). */
+function defaultSkillDirs(root: string): string[] {
+  const nested = skillDirsAt(root, 'skills');
+  if (nested.length) return nested;
+  return hasSkillFile(root) ? ['.'] : [];
+}
+
 /**
  * Resolves a plugin folder. Explicit `skills` / `commands` paths replace the default `skills/` and `commands/` folders,
  * so a marketplace entry can pick a few skills out of a larger repository.
@@ -160,7 +167,7 @@ export function resolvePlugin(root: string, entry?: MarketplaceEntry): ResolvedP
   const manifest: RawManifest = entry && entry.strict === false ? { ...own, ...entry } : { ...entry, ...own };
   const skillPaths = list(manifest.skills);
   const commandPaths = list(manifest.commands);
-  const skillDirs = skillPaths.length ? skillPaths.flatMap((rel) => skillDirsAt(root, rel)) : [...skillDirsAt(root, 'skills'), ...(hasSkillFile(root) && !file ? ['.'] : [])];
+  const skillDirs = skillPaths.length ? skillPaths.flatMap((rel) => skillDirsAt(root, rel)) : defaultSkillDirs(root);
   const commandFiles = commandPaths.length ? commandPaths.flatMap((rel) => commandFilesAt(root, rel)) : commandFilesAt(root, 'commands');
   return {
     name: manifest.name || entry?.name || path.basename(root),

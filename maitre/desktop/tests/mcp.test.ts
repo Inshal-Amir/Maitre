@@ -135,7 +135,13 @@ describe('built-in Google MCP server', () => {
     expect(await run('google_drive_search', { query: 'plan' })).toContain('id f1 | Plan');
     expect(await run('google_drive_read_file', { file_id: 'f1' })).toContain('Step 1: build the app');
     expect(await run('google_drive_create_file', { name: 'notes.txt', content: 'hello' })).toContain('Created notes.txt');
-    expect(await run('google_docs_create', { title: 'Summary', content: 'Text' })).toContain('docs.google.com/document/d/doc1');
+    expect(await run('google_docs_create', { title: 'Summary', content: '## Week\n\n- **33** emails\n\n| Kind | Count |\n|---|---|\n| Classroom | 13 |' })).toContain('Created Google Doc "Summary"');
+    const upload = google.log.filter((entry) => entry.route === 'POST /upload/drive/v3/files').pop()!;
+    expect(upload.body).toContain('Content-Type: text/html');
+    expect(upload.body).toContain('<h2>Week</h2>');
+    expect(upload.body).toContain('<strong>33</strong>');
+    expect(upload.body).toContain('<table>');
+    expect(upload.body).not.toContain('**');
     expect(await run('google_sheets_read', { spreadsheet_id: 's1', range: 'Sheet1!A1:B2' })).toContain('Ali\t9');
     expect(await run('google_sheets_write', { spreadsheet_id: 's1', range: 'Sheet1!A3', values: [['Sara', '8']] })).toContain('Updated 2 cells');
   });
