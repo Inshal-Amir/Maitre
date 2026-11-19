@@ -17,7 +17,7 @@ jobs:
       matrix:
         include:
           - target: mac-arm64
-            runner: macos-14
+            runner: macos-15
             script: package:desktop:mac:arm64:unsigned
           - target: mac-x64
             runner: macos-15-intel
@@ -30,7 +30,6 @@ jobs:
     defaults:
       run:
         working-directory: maitre/desktop
-        shell: bash
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,6 +44,7 @@ jobs:
           node-version: 24
       - name: Windows packaging settings
         if: matrix.target == 'win-x64'
+        shell: bash
         run: |
           printf 'DSH_DESKTOP_APP_ID=com.menthiq.maitre\nDSH_DESKTOP_AUTO_UPDATE_ENV=production\n' > apps/desktop/.env.windows
       - run: pnpm install --frozen-lockfile
