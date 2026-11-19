@@ -1,18 +1,15 @@
 {
-  "compilerOptions": {
-    "target": "ES2023",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "isolatedModules": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "types": ["node"]
-  },
-  "include": ["src", "tests", "vite.config.mts", "vitest.config.mts"]
+  // Solution file: the whole-repo graph for `tsc -b tsconfig.json` and the
+  // tsserver entry. `extends` carries the base paths for get-tsconfig
+  // consumers — tsx running scripts/ (no nearer tsconfig)
+  // resolves workspace imports through this file. `files: []` keeps it
+  // program-less, so the host/client cordis Context merges never meet.
+  // NEVER add include/files entries, and NEVER flatten this solution into a
+  // single ts.Program (scripts seed tsconfig.host.json or tsconfig.client.json).
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.host.json" },
+    { "path": "./tsconfig.client.json" }
+  ]
 }

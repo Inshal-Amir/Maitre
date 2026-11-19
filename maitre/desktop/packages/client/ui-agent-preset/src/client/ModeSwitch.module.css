@@ -1,0 +1,28 @@
+.stack {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  padding: 4px 0 8px;
+}
+
+.row .control {
+  display: grid;
+  width: 100%;
+}
+
+.row .control button {
+  height: 32px;
+  font-size: 14px;
+}

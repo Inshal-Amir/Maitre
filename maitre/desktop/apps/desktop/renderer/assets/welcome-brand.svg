@@ -1,0 +1,13 @@
+<svg width="472" height="40" viewBox="0 0 472 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+<style>
+  :root { --label: #0f1115; }
+  @media (prefers-color-scheme: dark) { :root { --label: #f9fafb; } }
+  text { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-weight: 600; }
+</style>
+<g transform="translate(166 0) scale(0.625)">
+  <rect width="64" height="64" rx="15" fill="#1F4A3D"/>
+  <path d="M15 46V30.5a8.5 8.5 0 0 1 17 0V46M32 30.5a8.5 8.5 0 0 1 17 0V46" fill="none" stroke="#F7EFE2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 14.5l3.6 3.6-3.6 3.6-3.6-3.6z" fill="#E08A5E"/>
+</g>
+<text x="216" y="30" font-size="28" fill="var(--label)">Maitre</text>
+</svg>

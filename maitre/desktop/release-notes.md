@@ -1,14 +1,8 @@
-- **PDF, Word and PowerPoint (0.7.2):** ask for a report, letter or presentation and Maitre makes the file itself, in Chat and Work, and shows it in the chat with Open and Show in folder. Google Docs it creates now keep headings, bold text, lists and tables.
-- **Faster long chats (0.7.2):** history is handled like Claude Code: the server reuses what it already read, long chats get a detailed summary at 128K tokens, and broken steps no longer block a chat.
-- **Retry (0.7.2):** when a reply breaks off (the connection drops or the server restarts), press **Retry** on the error to carry on from where it stopped; finished tool steps are kept.
-- **Clearer waiting (0.7.2):** while the model reads a long chat or tool results, Maitre says what it is doing and how much it is reading, and says so plainly if the server seems busy or restarting.
-- **Plugins:** single-skill plugins (a SKILL.md next to plugin.json, as in glebis/claude-skills) now install.
-- **Tidier Customize screens (0.7.2):** buttons, search boxes and chips line up at one size, long descriptions end cleanly, and the message box footer fits on one line. Pressing Shift+Tab quickly no longer skips a mode.
-- **Approval modes (0.7.1):** pick how much Maitre asks you, right under the message box: **Ask before changes**, **Auto-edit** (asks only for risky actions) or **Full auto** (never asks). Shift+Tab switches between them.
-- **Skills, apps and plugins:** a new Customize screen (sidebar → Skills, apps and plugins). Add skills, connect apps, install plugins and switch tools on or off.
-- **Connector gallery:** 22 ready-made connectors (GitHub, Notion, Linear, Jira, Asana, Canva, Stripe, Supabase, Playwright, Chrome DevTools and more), your own MCP servers, or paste a config from Claude Desktop, Claude Code, Cursor or VS Code.
-- **Plugins:** install Claude Code plugins and skill collections from GitHub or a folder. Every plugin is shown for review before it is installed.
-- **Slash commands:** type `/` in the message box to run a skill.
-- **Images:** attach or paste screenshots and photos; Maitre now reads them.
-- **Long work:** uses the server's new 1M-token context, and answers can be longer.
-- From 0.6: the new Maitre look and app icon; chats and settings carry over from earlier versions.
+- **New Maitre Desktop (0.8):** a new, faster app built from the ground up, with a cleaner look.
+- **Agents that plan and finish work:** to-do lists, plan mode, goals, and helper agents that work in parallel on bigger tasks.
+- **Long chats stay fast:** older parts of a long conversation are summarised automatically, so Maitre keeps the full 1M-token context for what matters.
+- **Web search built in:** Maitre searches the web through Maitre Search and opens only the pages it needs.
+- **Office files:** create and edit Word, Excel and PowerPoint files and PDFs, with previews inside the app.
+- **Connectors, skills and plugins:** connect Google Workspace and other apps, add skills, and install plugins.
+- **Setup:** enter your Maitre API key on first start (get one at maitre.menthiq.com). This app installs next to Maitre 0.7; your earlier chats stay in the old app.
+- **Mac:** the installer is not yet notarized by Apple. After copying Maitre to Applications, right-click it and choose Open the first time.

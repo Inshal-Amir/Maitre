@@ -1,0 +1,66 @@
+name: Desktop installers
+
+# Builds unsigned Maitre installers from maitre/desktop for every platform and keeps them as workflow artifacts.
+# Run it from the Actions tab (or `gh workflow run desktop-installers.yml`); publishing is a separate, manual step.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-installers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: mac-arm64
+            runner: macos-14
+            script: package:desktop:mac:arm64:unsigned
+          - target: mac-x64
+            runner: macos-15-intel
+            script: package:desktop:mac:x64:unsigned
+          - target: win-x64
+            runner: windows-2022
+            script: package:desktop:win:x64:unsigned
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 150
+    defaults:
+      run:
+        working-directory: maitre/desktop
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            maitre/desktop
+            .github
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: maitre/desktop/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Windows packaging settings
+        if: matrix.target == 'win-x64'
+        run: |
+          printf 'DSH_DESKTOP_APP_ID=com.menthiq.maitre\nDSH_DESKTOP_AUTO_UPDATE_ENV=production\n' > apps/desktop/.env.windows
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run ${{ matrix.script }} --check
+      - run: pnpm run ${{ matrix.script }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maitre-${{ matrix.target }}
+          path: |
+            maitre/desktop/apps/desktop/.desktop-build/targets/*/unsigned-artifacts/*.dmg
+            maitre/desktop/apps/desktop/.desktop-build/targets/*/unsigned-artifacts/*.exe
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: packaging-logs-${{ matrix.target }}
+          path: maitre/desktop/apps/desktop/.desktop-build/packaging-runs/
+          retention-days: 7

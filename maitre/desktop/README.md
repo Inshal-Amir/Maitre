@@ -1,74 +1,77 @@
-# Maitre Desktop (by Menthiq)
+# DeepSeek Harness
 
-Electron app (Mac and Windows) with its own UI and agent runtime, connected to the Maitre model API (`https://api.menthiq.com/v1`, model `maitre-coder`). No LibreChat, MongoDB or Python needed on the client.
+English | [中文](README.zh.md)
 
-## Accounts
+DeepSeek Harness (`dsh`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).
 
-First launch shows **Create account / Sign in**. The app calls the portal API (`https://maitre.menthiq.com/platform/v1`: register or login, then `POST /keys` named after the computer) and stores the new key and the session in the OS keychain. Settings shows the account, its credits, and Sign out; "I already have an API key" still allows pasting a key. Tester instructions: `TESTERS.md`.
+It is built on an **everything-is-a-plugin** architecture and powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512).
 
-## Connected apps (MCP)
+Documentation: [https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
 
-`src/main/mcp`: an MCP client (official `@modelcontextprotocol/sdk`) for remote servers (Streamable HTTP with MCP OAuth) and local ones (stdio). Their tools join the agent in both modes as `<prefix>_<tool>`; approval risk comes from tool annotations (`readOnlyHint` → safe, `destructiveHint` or names like send/delete/share → risky). **Google** is built in (`src/main/google`: OAuth PKCE sign-in + an in-process MCP server for Gmail, Calendar, Drive, Docs, Sheets), or can use Google's hosted MCP servers. Owner setup: `../docs/GOOGLE-SETUP.md`.
+## Developer preview
 
-## Skills, connectors, plugins and tools (Customize)
+DeepSeek Harness is in _developer preview_ and iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
 
-Sidebar → **Skills, apps and plugins** (or Settings → Skills / Connectors / Plugins / Tools) opens the Customize screen.
+Review the [safety notice](SAFETY.md) before running the project.
 
-- **Skills** (`src/main/skills`): Agent Skills format, the same as Claude Code: a folder with `SKILL.md` (frontmatter `name`, `description`, optional `argument-hint`, `disable-model-invocation`, `user-invocable`) plus any scripts or reference files. Sources, highest priority first: the Work task's `.maitre/skills` and `.claude/skills`, the user's `~/.maitre/skills`, `~/.claude/skills` (optional), built-in skills (`skill-creator`, `code-review`, `debugging`, `research-report`, `professional-writing`), and enabled plugins (named `plugin:skill`). The system prompt lists names and descriptions only; `use_skill` loads the instructions, `read_skill_file` reads files in the skill folder, `create_skill` saves a new one (approval risk: normal). Typing `/` in the composer shows a menu; `/name args` sends the skill's instructions with the message (`$ARGUMENTS`, `$1`…, `${CLAUDE_SKILL_DIR}`, `${CLAUDE_PLUGIN_ROOT}` are filled in). Skills can be created, edited, imported from a folder, switched off or deleted in the UI.
-- **Connectors** (`src/main/mcp`, gallery in `src/shared/catalog.ts`): Google, a gallery of ready MCP servers (Context7, DeepWiki, Exa, Hugging Face, Cloudflare Docs, Brave Search, Notion, Linear, Jira/Confluence, Asana, Canva, Stripe, PayPal, GitHub, Sentry, Supabase, Filesystem, Knowledge graph memory, Sequential thinking, Fetch, Playwright, Chrome DevTools), custom servers (Streamable HTTP with SSE fallback, SSE, or stdio, with env vars or headers stored encrypted in `secrets/mcp-<id>-config.bin`), and paste-in JSON from Claude Desktop / Claude Code / Cursor / VS Code. Each server can be switched off, edited or reconnected; OAuth servers open their sign-in page.
-- **Plugins** (`src/main/plugins`): installs Claude Code plugins (`.claude-plugin/plugin.json`, `skills/`, `commands/`, `.mcp.json`) and marketplaces (`.claude-plugin/marketplace.json`) from a GitHub address or a folder; a repository of plain skills is imported into `~/.maitre/skills`. Every plugin is downloaded to a staging folder and shown for review (skills, commands, connectors and the programs they start) before it is installed into `~/.maitre/plugins/<id>`. `anthropics/claude-plugins-official` and `anthropics/skills` are offered as marketplaces. Plugin MCP servers connect while the plugin is on; `${VAR}` placeholders the environment does not set are asked for in Connectors and stored encrypted. Hooks, sub-agents and LSP servers of Claude Code plugins are not run.
-- **Tools**: every built-in tool can be switched off (`disabledTools` in settings), except the ones the Work workflow and skills need (`ask_user`, `set_project`, `update_plan`, `update_brief`, `add_note`, `use_skill`, `read_skill_file`).
+## Run
 
-Tests: `tests/skills.test.ts`, `tests/plugins.test.ts`; `MAITRE_LIVE_GITHUB=1 npx vitest run tests/github-live.test.ts` downloads from GitHub and connects the no-sign-in gallery servers for real. `MAITRE_HOME` and `MAITRE_CLAUDE_HOME` move `~/.maitre` and `~/.claude` (tests use temporary folders).
+### Run from `npm`
 
-## Two modes
+Install `Node.js`, then run:
 
-| | Chat | Work |
-|---|---|---|
-| Purpose | Questions, writing, research | Doing things on the computer |
-| Tools | `web_search`, `fetch_url` (public internet only), `github_search`, `github_repo`, `current_time` | Everything in Chat plus files (`read_file`, `write_file`, `edit_file`, `list_directory`, `find_files`, `search_text`, `create_directory`, `move_path`, `delete_path`), shell (`run_command`), background processes (`start_process`, `process_output`, `stop_process`, `list_processes`), `system_info`, `open`, `check_web_page` |
-| Step limit | 8 model rounds | 60 model rounds (then "continue") |
-| Folder | none | per-task working folder (default `~/Maitre`, or `~/Maitre` when it exists) |
-
-Git, GitHub (`gh`), Docker, databases and package managers are used through `run_command` / `start_process` with the user's login-shell `PATH`.
-
-## Work agent workflow
-
-1. **Understand**: `ask_user` shows a form with clickable options (the run waits for the answers).
-2. **Workspace**: the first questions always include where to create the project (proposed path + Browse…); `set_project` switches the task to that folder and creates `.maitre/`.
-3. **Plan**: `update_brief` writes `.maitre/brief.md`; `update_plan` keeps a checklist (shown above the thread, saved to `.maitre/plan.md`).
-4. **Research**: official starters, GitHub (`github_search`, `github_repo`, `github_read_file`, clone and adapt), current docs (`web_search`, `fetch_url`); decisions go to `.maitre/notes.md` with `add_note`.
-5. **Build and verify** step by step; brief, plan and notes are put into the system prompt on every step, so long chats do not lose the goal.
-
-## Agent runtime (`src/main/agent`)
-
-`runtime.ts` loop: build messages within the context budget (`context.ts`: shorten old tool output first, then drop oldest steps, keep the task) → stream `/chat/completions` with tool schemas (`llm.ts`: SSE, `reasoning_content` or `<think>` tags, tool-call deltas, retry only before any output) → run each tool call → feed results back → repeat until the model answers without tools. Stop cancels the stream and kills the running process tree. Identical failing calls are refused after two failures.
-
-## Approvals (`src/main/tools/policy.ts`, `agent/approvals.ts`)
-
-Every tool call is rated `safe`, `normal` or `risky`:
-- **safe** – reading, listing, searching, `git status/log/diff`, `docker ps/logs`, version checks.
-- **normal** – changes inside the working folder, project installs (`npm install`, `pip install`), builds, `git add/commit/clone`, `docker run`, `docker compose up`.
-- **risky** – deleting, `git push`, `reset --hard`, `sudo`, system/global installs, `curl | sh`, command substitution, destructive SQL, killing processes, writing outside the working folder, reading secrets (`~/.ssh`, `.env` elsewhere, the app's own data), unknown programs.
-
-Settings → approval policy: ask for risky (default), ask for every change, or never ask. The approval card appears inline in the thread: Allow / Always allow in this chat (keyed by every program in the command line) / Deny. Deletions go to the Trash; overwritten files are backed up to `<userData>/backups`.
-
-## Data
-
-`<userData>` = `~/Library/Application Support/Maitre` (Mac) or `%APPDATA%\Maitre` (an existing `Maitre` folder from older versions is kept and used) (Windows): `settings.json`, `secrets/*.bin` (API key and GitHub token encrypted with the OS keychain via `safeStorage`), `conversations/*.json`, `backups/`, `screenshots/`.
-
-## Develop
-
-```bash
-cd maitre/desktop
-npm install
-npm start            # build + run
-npm run typecheck
-npm test             # vitest: policy, LLM client, runtime loop with a mock model, tools
-npm run e2e          # real Electron app against tests/mock-model.mjs (Playwright), screenshots in maitre/tests/evidence/desktop
-npm run dist:mac     # release/*.dmg   (dist:win for the Windows installer, build it on Windows)
+```sh
+npx @deepseek-ai/dsh web
 ```
 
-Environment overrides (tests): `MAITRE_USER_DATA`, `MAITRE_API_BASE`, `MAITRE_CONSOLE_BASE`, `MAITRE_API_KEY`, `MAITRE_MODEL`, `MAITRE_GITHUB_TOKEN`.
+The command starts the Web UI at `http://127.0.0.1:3080` by default and opens it in the default browser for a local launch. An SSH launch only prints the host URL because the SSH client or editor owns the local forwarded address. Pass `--no-open` to run the server without opening a browser. See [Web UI guide](docs/user/guide/index.md).
 
-Web search runs SearXNG when an address is set in Settings, otherwise DuckDuckGo and then Bing in a hidden, sandboxed Chromium window (plain HTTP requests get bot-checked).
+### Run from source
+
+To run from a repository checkout:
+
+```sh
+git clone https://github.com/deepseek-ai/deepseek-harness.git
+cd deepseek-harness
+pnpm install
+pnpm run build
+pnpm dsh web
+```
+
+`pnpm run build` prepares the repository artifacts. `pnpm dsh web` uses those built artifacts without rebuilding.
+
+## Community and support
+
+- Submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
+- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
+- Join <a href="https://discord.gg/4MrtZUhpxg">DeepSeek Harness Discord community</a>.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Development
+
+Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
+
+`pnpm run dev:web` builds, serves, and rebuilds client bundles on source edits in one terminal, and `make help` lists the matching Make targets for Web and Desktop; the guide's application commands section owns the full table.
+
+For agents, follow [AGENTS.md](AGENTS.md).
+
+## Citation
+
+```bibtex
+@misc{deepseek-harness2026,
+  title={DeepSeek Harness: Everything is a Plugin},
+  author={DeepSeek-AI},
+  year={2026},
+  publisher={GitHub},
+  howpublished={\url{https://github.com/deepseek-ai/deepseek-harness}},
+}
+```
+
+## License
+
+[MIT](LICENSE)
+
+Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

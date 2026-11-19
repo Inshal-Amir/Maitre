@@ -1,0 +1,51 @@
+# Maitre Chat: conversation, web reading, connectors and skills. No shell, no file writes.
+- insert:
+    - id: preset-chat
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: chat
+        name: Chat
+        description: Talk with Maitre, read the web and use your connected apps. Nothing on this computer is changed.
+        order: 0
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: >-
+                You are Maitre, a friendly AI assistant made by Menthiq, powered by the {{model}} model.
+                You are in Chat mode: you cannot run commands or change files on this computer; if the user asks for that, tell them to switch to Work mode.
+                Reply in the same language as the user's latest message. If it is in English, reply only in English. Use Roman Urdu or Urdu only when the latest message itself is written in it.
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          # Skills from the user's skills folder (including those added from GitHub on
+          # the Plugins page). Only the skill loader: Chat still has no shell or file tools.
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024

@@ -1,0 +1,197 @@
+/* GitHub skill review dialog and the Skills from GitHub section of the Plugins page. */
+
+.dialog {
+  width: min(600px, 100%);
+  max-height: min(800px, 100%);
+}
+
+.content {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.search {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.count {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-height: 120px;
+  max-height: min(420px, 50vh);
+  overflow-y: auto;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--dsw-radius-sm);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+.row[data-invalid] {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.row input {
+  flex: none;
+  margin: 3px 0 0;
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.rowDescription {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.rowProblem {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary);
+  overflow-wrap: anywhere;
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-state-warn-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.note > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--dsw-alias-state-warn-primary);
+}
+
+.footer {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+}
+
+.error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-state-error-primary);
+  overflow-wrap: anywhere;
+}
+
+.installed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.installedRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+}
+
+.installedText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.installedSource {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.installedSource a {
+  color: inherit;
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}

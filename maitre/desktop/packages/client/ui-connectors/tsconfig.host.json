@@ -1,0 +1,22 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
+  },
+  "include": [
+    "src/*.ts",
+    "src/google"
+  ],
+  "exclude": [
+    "src/css-modules.d.ts"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../../vendor/schemastery" },
+    { "path": "../../typert/protocol" },
+    { "path": "../../credentials/credentials" },
+    { "path": "../../mcp/mcp-manager" }
+  ]
+}
