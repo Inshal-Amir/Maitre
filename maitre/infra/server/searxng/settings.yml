@@ -1,0 +1,23 @@
+# SearXNG settings for the SERVER profile (adapted from connectors/search/searxng-settings.yml).
+# Private: reachable only by platform-api on the internal network (/v1/search); no published port.
+# The secret key comes from SEARXNG_SECRET (.server-secrets/searxng.env, created by scripts/server/common.sh).
+use_default_settings: true
+general:
+  instance_name: "Maitre search"
+  enable_metrics: false
+server:
+  bind_address: "0.0.0.0"
+  port: 8080
+  limiter: false
+  image_proxy: false
+  public_instance: false
+search:
+  safe_search: 1
+  formats:
+    - html
+    - json
+outgoing:
+  request_timeout: 5.0       # per engine; platform-api waits at most 15 s for the whole search
+  max_request_timeout: 10.0
+ui:
+  static_use_hash: true

@@ -79,7 +79,7 @@ print(llm.invoke("Write a Python function that validates a non-empty task title.
             ))}
           </div>
           <div className="code-wrap"><pre>{samples[sample].code}</pre><span className="copy-float"><CopyButton text={samples[sample].code} /></span></div>
-          <p className="muted small" style={{ margin: '12px 0 0' }}>Supported: <code>/v1/models</code> and <code>/v1/chat/completions</code> (text, streaming, tool calls). Not yet: <code>/v1/responses</code>, embeddings, images.</p>
+          <p className="muted small" style={{ margin: '12px 0 0' }}>Supported: <code>/v1/models</code>, <code>/v1/chat/completions</code> (text, streaming, tool calls) and <code>/v1/search</code> (web search, not billed). Not yet: <code>/v1/responses</code>, embeddings, images.</p>
         </section>
       </div>
       <section className="card flush" style={{ marginTop: 18 }}>

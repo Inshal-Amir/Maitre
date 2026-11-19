@@ -7,6 +7,7 @@ gen() { [ -s "$S/$1" ] || openssl rand -hex 24 >"$S/$1"; }
 gen pg_superuser_password; gen pg_platform_password; gen pg_litellm_password; gen vllm_api_key
 [ -s "$S/litellm_master_key" ] || echo "sk-$(openssl rand -hex 24)" >"$S/litellm_master_key"
 [ -e "$S/cloudflared_token_menthiq" ] || install -m 600 /dev/null "$S/cloudflared_token_menthiq"
+[ -s "$S/searxng.env" ] || echo "SEARXNG_SECRET=$(openssl rand -hex 32)" >"$S/searxng.env"
 [ -f "$S/server.env" ] || cp "$REPO/maitre/infra/server/server.env.example" "$S/server.env"
 if [ ! -s "$S/platform.env" ]; then
   cat >"$S/platform.env" <<ENV

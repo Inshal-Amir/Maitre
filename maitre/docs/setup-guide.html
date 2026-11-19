@@ -356,7 +356,7 @@ cloudflared tunnel --url http://127.0.0.1:8300</pre>
 
 <h4>Security summary</h4>
 <ul>
-  <li>Only two public routes exist: <code>GET /v1/models</code> and <code>POST /v1/chat/completions</code>. The gateway, model, databases and desktop tools are never routed publicly.</li>
+  <li>Only three public routes exist: <code>GET /v1/models</code>, <code>POST /v1/chat/completions</code> and <code>POST /v1/search</code> (web search). The gateway, model, search engine, databases and desktop tools are never routed publicly.</li>
   <li>Credits are reserved before generation and settled on actual usage; the ledger cannot be edited or deleted.</li>
   <li>API keys are stored as one-way fingerprints — a lost key cannot be recovered, only replaced.</li>
   <li>The Desktop assistant is limited to the chosen workspace folder; other commands need your approval.</li>

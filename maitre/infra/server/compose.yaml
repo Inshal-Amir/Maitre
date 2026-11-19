@@ -2,6 +2,7 @@
 # Start with: maitre/scripts/server/start.sh   (never `docker compose down -v`: it deletes data)
 # Only nginx publishes a port, bound to 127.0.0.1 for the Cloudflare Tunnel connector and local tests.
 # Database, LiteLLM and the model have no published ports and live on the internal network.
+# SearXNG (web search behind /v1/search) has no published port either; it alone uses the "search" network for egress.
 # The model service comes from model.<MAITRE_ENGINE>.yaml (llamacpp or vllm), added by scripts/server/common.sh.
 name: maitre
 
@@ -12,6 +13,7 @@ networks:
   internal:
     internal: true        # no outbound internet: databases, gateway, model
   edge: {}                # nginx + cloudflared (+ outbound for the tunnel)
+  search: {}              # SearXNG only: outbound internet for the search engines
 
 volumes:
   pgdata: {}
@@ -65,12 +67,29 @@ services:
     environment:
       MAITRE_PROFILE: gpu
       MAITRE_LITELLM_BASE_URL: http://litellm:4000
+      MAITRE_SEARXNG_URL: http://searxng:8080
       MAITRE_COOKIE_SECURE: "true"
     networks: [internal, edge]
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:8200/platform/v1/health')\""]
       interval: 10s
       retries: 30
+
+  searxng:
+    <<: *restart
+    image: searxng/searxng:2026.11.14-a7128d5d1@sha256:eb8b09ffa83aebbe8b8d3ded23cfd224b2d3b01db4f3af9eb03876ef6def6dda
+    env_file: [../../../.server-secrets/searxng.env]      # SEARXNG_SECRET; generated on the PC, never committed
+    environment:
+      GRANIAN_HOST: 0.0.0.0
+      SEARXNG_PORT: "8080"
+      FORCE_OWNERSHIP: "false"   # settings.yml is a read-only bind mount; do not chown it
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+    networks: [internal, search]
+    healthcheck:
+      test: ["CMD", "/usr/local/searxng/.venv/bin/python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=5)"]
+      interval: 15s
+      retries: 20
 
   nginx:
     <<: *restart

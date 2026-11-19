@@ -39,7 +39,8 @@ flowchart TD
 | Public ingress | none (loopback only) | nginx + named Cloudflare Tunnel on the GPU PC |
 
 ## Request paths
-- **Model request:** SDK/LibreChat → `https://api.<domain>/v1` → nginx (only `/v1/models`, `/v1/chat/completions`) → platform API (key → account → model scope → **atomic reservation**) → LiteLLM (with the same customer key) → model server (llama.cpp or vLLM) → streamed/JSON response → **settlement on actual usage**. There is no route from the internet to LiteLLM or the model server.
+- **Model request:** SDK/LibreChat → `https://api.<domain>/v1` → nginx (only `/v1/models`, `/v1/chat/completions`, `/v1/search`) → platform API (key → account → model scope → **atomic reservation**) → LiteLLM (with the same customer key) → model server (llama.cpp or vLLM) → streamed/JSON response → **settlement on actual usage**. There is no route from the internet to LiteLLM or the model server.
+- **Web search:** `POST /v1/search` → nginx → platform API (key, per-key rate limit, no credits) → private SearXNG (`searxng` service; the only container with its own egress network) → cleaned, deduplicated results.
 - **Agent action:** LibreChat sends messages + tool schemas to the model → model returns `tool_calls` → LibreChat calls the local MCP connector → result goes back → next model round, until done or bounded failure (recursion limit 25 ≈ 12 rounds; retries of an identical failing call are capped at 2 by the connectors). The public API never executes tools.
 - **Portal playground:** portal session → platform API → same admission/credit pipeline, charged to the logged-in account, using a restricted server-held gateway key that never reaches the browser.
 

@@ -12,6 +12,7 @@ The examples below are **real responses** captured on 2026-09-22 from the develo
 |---|---|---|
 | GET | `/v1/models` | Aliases permitted for this key |
 | POST | `/v1/chat/completions` | `messages`, `model`, `tools`, `tool_choice`, `max_tokens` **or** `max_completion_tokens`, `stream`, `stream_options.include_usage`, sampling fields |
+| POST (or GET `?q=`) | `/v1/search` | Web search: `query` (1-400 chars), `max_results` (1-10, default 6), `language`. Not billed; 30 requests/minute per key |
 
 Not supported yet (do not rely on them): `/v1/responses`, embeddings, images, audio, OpenAI-hosted tools, `n > 1`. Parameters `api_base`, `base_url`, `api_key`, `litellm_params` are rejected (no user-supplied upstreams).
 
@@ -45,6 +46,13 @@ The platform always requests final usage upstream for settlement, but forwards t
 
 ### Tool calls
 Tool calls come back as structured `tool_calls` (id, function name, JSON arguments), in both non-streaming and streaming form; ids are preserved end to end. The API **does not execute** tools: the caller runs its own tool and sends the result back with `{"role":"tool","tool_call_id":…}`. Verified with the OpenAI SDK and LangChain `bind_tools` (see `maitre/scripts/test-public-api.py`).
+
+### POST /v1/search
+Request: `{"query":"python asyncio timeout","max_results":6,"language":"en"}` (or `GET /v1/search?q=python+asyncio+timeout&max_results=6`). Same `Authorization: Bearer <key>` header.
+```json
+{"query":"python asyncio timeout","results":[{"title":"Coroutines and Tasks","url":"https://docs.python.org/3/library/asyncio-task.html","snippet":"…","engine":"duckduckgo","published":"2026-10-02T00:00:00"}]}
+```
+Results are deduplicated by destination URL, search-engine redirect wrappers and tracking parameters (`utm_*`, `gclid`, `fbclid`, …) are removed, snippets are at most 300 characters; `engine` and `published` appear only when known. Errors: 400 `invalid_request`, 429 `search_rate_limited`, 503 `search_unavailable` / `search_engines_unavailable` (search backend down; nothing is charged).
 
 ## Errors
 Every error has this shape plus an `x-request-id` header:

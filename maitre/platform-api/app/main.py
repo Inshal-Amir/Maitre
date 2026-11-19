@@ -21,6 +21,7 @@ from .inference import router as inference_router
 from .routes_admin import router as admin_router
 from .routes_platform import router as platform_router
 from .routes_oauth import router as oauth_router
+from .search import router as search_router
 
 log = logging.getLogger("maitre")
 
@@ -97,3 +98,4 @@ app.include_router(platform_router)
 app.include_router(oauth_router)
 app.include_router(admin_router)
 app.include_router(inference_router)
+app.include_router(search_router)

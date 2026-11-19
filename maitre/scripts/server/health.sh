@@ -3,7 +3,7 @@
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 fail=0
 guard=""; [ "${MAITRE_GUARD:-off}" = on ] && guard=guard
-for s in postgres model litellm platform-api nginx $guard; do
+for s in postgres model litellm platform-api searxng nginx $guard; do
   st="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "maitre-$s-1" 2>/dev/null || echo missing)"
   printf '  %-13s %s\n' "$s" "$st"; case "$st" in healthy|running) ;; *) fail=1 ;; esac
 done

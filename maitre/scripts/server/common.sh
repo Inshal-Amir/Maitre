@@ -11,6 +11,11 @@ export MAITRE_HOST_UID="${MAITRE_HOST_UID:-$(id -u)}" MAITRE_HOST_GID="${MAITRE_
 export MAITRE_REPO_DIR="$REPO"
 # Empty placeholder so compose can parse; owned by the host user (the deployer runs as root) so it can be edited.
 [ -e "$SECRETS/cloudflared_token_menthiq" ] || { install -m 600 -o "$MAITRE_HOST_UID" -g "$MAITRE_HOST_GID" /dev/null "$SECRETS/cloudflared_token_menthiq" 2>/dev/null || true; }
+# SearXNG secret (env file for the searxng service); created on first use so an auto-deploy needs no manual step.
+if [ ! -s "$SECRETS/searxng.env" ]; then
+  (umask 077; echo "SEARXNG_SECRET=$(od -An -tx1 -N32 /dev/urandom | tr -d ' \n')" >"$SECRETS/searxng.env")
+  chown "$MAITRE_HOST_UID:$MAITRE_HOST_GID" "$SECRETS/searxng.env" 2>/dev/null || true
+fi
 export COMPANY_DOMAIN="${COMPANY_DOMAIN:-menthiq.com}"
 export CONSOLE_HOST="${CONSOLE_HOST:-maitre.$COMPANY_DOMAIN}" API_HOST="${API_HOST:-api.$COMPANY_DOMAIN}"
 MAITRE_ENGINE="${MAITRE_ENGINE:-llamacpp}"

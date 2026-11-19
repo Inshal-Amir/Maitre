@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     upstream_timeout_s: float = 600.0
     disconnect_drain_s: float = 20.0  # bounded wait for final usage after a client disconnect
 
+    # Hosted web search (/v1/search): private SearXNG service, never routed publicly. Not billed in tokens.
+    searxng_url: str = "http://searxng:8080"
+    search_timeout_s: float = 15.0
+    search_requests_per_minute: int = 30  # per API key; 0 = no limit
+
     login_max_failures_per_email: int = 5
     login_max_failures_per_ip: int = 20
     login_window_minutes: int = 15

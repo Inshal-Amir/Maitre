@@ -44,6 +44,8 @@ SQL
 ensure_databases
 wait_healthy model
 dc up -d litellm; wait_healthy litellm
+# Web search (/v1/search) is optional: a failed start (e.g. image pull) never blocks the model API.
+dc up -d searxng || say "WARNING: searxng did not start; /v1/search answers 503 until it does (dc logs searxng)"
 dc up -d platform-api; wait_healthy platform-api
 dc up -d nginx
 if [ "${1:-}" = "--with-tunnel" ]; then

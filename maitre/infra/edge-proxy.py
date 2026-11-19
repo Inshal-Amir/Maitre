@@ -4,7 +4,7 @@ On the GPU PC this job is done by nginx (maitre/infra/server/nginx/maitre.conf.t
 On the Mac we use this tiny equivalent so a phone, another computer, or a temporary
 Cloudflare Tunnel can reach the model API without exposing the portal or admin routes.
 
-Allowed:  GET /v1/models, POST /v1/chat/completions, GET /healthz
+Allowed:  GET /v1/models, POST /v1/chat/completions, GET|POST /v1/search, GET /healthz
 Blocked:  everything else (/platform/v1/**, admin, anything unknown) -> 404
 
   uv run --project maitre/platform-api python maitre/infra/edge-proxy.py            # LAN: 0.0.0.0:8300
@@ -21,13 +21,13 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 UPSTREAM = "http://127.0.0.1:8200"
-ALLOWED = {("GET", "/v1/models"), ("POST", "/v1/chat/completions")}
+ALLOWED = {("GET", "/v1/models"), ("POST", "/v1/chat/completions"), ("GET", "/v1/search"), ("POST", "/v1/search")}
 app = FastAPI(title="Maitre edge proxy", docs_url=None, redoc_url=None, openapi_url=None)
 
 
 @app.get("/healthz")
 async def healthz():
-    return {"status": "ok", "proxy": "maitre-edge", "allows": ["GET /v1/models", "POST /v1/chat/completions"]}
+    return {"status": "ok", "proxy": "maitre-edge", "allows": ["GET /v1/models", "POST /v1/chat/completions", "GET|POST /v1/search"]}
 
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"])
@@ -35,7 +35,7 @@ async def forward(path: str, request: Request):
     route = (request.method, "/" + path)
     if route not in ALLOWED:
         return JSONResponse(
-            {"error": {"message": "Not found. This address serves only GET /v1/models and POST /v1/chat/completions.",
+            {"error": {"message": "Not found. This address serves only GET /v1/models, POST /v1/chat/completions and /v1/search.",
                        "type": "not_found_error", "code": "not_found"}}, status_code=404)
 
     # Forward only what the API needs; never pass cookies (portal sessions stay private).
@@ -43,7 +43,7 @@ async def forward(path: str, request: Request):
                if k.lower() in ("authorization", "content-type", "accept", "user-agent")}
     body = await request.body()
     client = httpx.AsyncClient(timeout=httpx.Timeout(900.0, connect=10))
-    req = client.build_request(request.method, f"{UPSTREAM}/{path}", headers=headers, content=body)
+    req = client.build_request(request.method, f"{UPSTREAM}/{path}", params=request.query_params, headers=headers, content=body)
     upstream = await client.send(req, stream=True)
     out_headers = {k: v for k, v in upstream.headers.items()
                    if k.lower() in ("content-type", "x-request-id", "cache-control")}
@@ -71,5 +71,5 @@ if __name__ == "__main__":
     ap.add_argument("--host", default="0.0.0.0", help="0.0.0.0 = reachable from your network; 127.0.0.1 = this Mac only")
     ap.add_argument("--port", type=int, default=8300)
     a = ap.parse_args()
-    print(f"Maitre edge proxy on {a.host}:{a.port} -> {UPSTREAM} (only /v1/models and /v1/chat/completions)")
+    print(f"Maitre edge proxy on {a.host}:{a.port} -> {UPSTREAM} (only /v1/models, /v1/chat/completions and /v1/search)")
     uvicorn.run(app, host=a.host, port=a.port, log_level="info")
