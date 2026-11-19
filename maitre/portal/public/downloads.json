@@ -1,35 +1,35 @@
 {
-  "version": "0.7.1",
-  "released": "2026-11-01",
-  "notes": "- **Approval modes (0.7.1):** pick how much Maitre asks you, right under the message box: **Ask before changes**, **Auto-edit** (asks only for risky actions) or **Full auto** (never asks). Shift+Tab switches between them.\n- **Skills, apps and plugins:** a new Customize screen (sidebar → Skills, apps and plugins). Add skills, connect apps, install plugins and switch tools on or off.\n- **Connector gallery:** 22 ready-made connectors (GitHub, Notion, Linear, Jira, Asana, Canva, Stripe, Supabase, Playwright, Chrome DevTools and more), your own MCP servers, or paste a config from Claude Desktop, Claude Code, Cursor or VS Code.\n- **Plugins:** install Claude Code plugins and skill collections from GitHub or a folder. Every plugin is shown for review before it is installed.\n- **Slash commands:** type `/` in the message box to run a skill.\n- **Images:** attach or paste screenshots and photos; Maitre now reads them.\n- **Long work:** uses the server's new 1M-token context, and answers can be longer.\n- From 0.6: the new Maitre look and app icon; chats and settings carry over from earlier versions.",
-  "page": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/tag/v0.7.1",
+  "version": "0.8.0",
+  "released": "2026-11-19",
+  "notes": "- **New Maitre Desktop (0.8):** a new, faster app built from the ground up, with a cleaner look.\n- **Agents that plan and finish work:** to-do lists, plan mode, goals, and helper agents that work in parallel on bigger tasks.\n- **Long chats stay fast:** older parts of a long conversation are summarised automatically, so Maitre keeps the full 1M-token context for what matters.\n- **Web search built in:** Maitre searches the web through Maitre Search and opens only the pages it needs.\n- **Office files:** create and edit Word, Excel and PowerPoint files and PDFs, with previews inside the app.\n- **Connectors, skills and plugins:** connect Google Workspace and other apps, add skills, and install plugins.\n- **Setup:** enter your Maitre API key on first start (get one at maitre.menthiq.com). This app installs next to Maitre 0.7; your earlier chats stay in the old app.\n- **Mac:** the installer is not yet notarized by Apple. After copying Maitre to Applications, right-click it and choose Open the first time.",
+  "page": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/tag/v0.8.0",
   "files": [
     {
       "id": "windows",
       "os": "Windows",
       "label": "Windows 10 and 11 (64-bit)",
-      "file": "Maitre-Setup-0.7.1.exe",
-      "size": 114110934,
-      "sha256": "77a71a47eaa5eff331a1080e85b9d087ce192b1f2099df533f735b1fea530a57",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.1/Maitre-Setup-0.7.1.exe"
+      "file": "Maitre-Setup-0.8.0.exe",
+      "size": 321847135,
+      "sha256": "74ebd33f81e9800e6e97bccc638e69c01345746625b18a6092b6a392e60f4f52",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.8.0/Maitre-Setup-0.8.0.exe"
     },
     {
       "id": "mac-arm64",
       "os": "macOS",
       "label": "Mac with Apple silicon (M1–M4)",
-      "file": "Maitre-0.7.1-mac-arm64.dmg",
-      "size": 129678301,
-      "sha256": "72f63c1fc40ddacad577987eebaff6c58f3939930beea85125323199650e2164",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.1/Maitre-0.7.1-mac-arm64.dmg"
+      "file": "Maitre-0.8.0-mac-arm64.dmg",
+      "size": 276288530,
+      "sha256": "673934511812cf2de97782adafde48696f1ce65ce5689b088d9129f0c8e3a856",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.8.0/Maitre-0.8.0-mac-arm64.dmg"
     },
     {
       "id": "mac-x64",
       "os": "macOS",
       "label": "Mac with Intel processor",
-      "file": "Maitre-0.7.1-mac-x64.dmg",
-      "size": 136670439,
-      "sha256": "05780c2b65a945e75b559f7bd6ded1755ef2354fedc9b581afe0b96319e3d7eb",
-      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.7.1/Maitre-0.7.1-mac-x64.dmg"
+      "file": "Maitre-0.8.0-mac-x64.dmg",
+      "size": 298801055,
+      "sha256": "a71f5fce76d01d611e7f982a24d0e076900842f15fabd6f8ec24c1a4c07e6b75",
+      "url": "https://github.com/Inshal-Amir/Maitre-Desktop/releases/download/v0.8.0/Maitre-0.8.0-mac-x64.dmg"
     }
   ]
 }
